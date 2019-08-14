@@ -1,0 +1,16 @@
+{
+    "name": "OpenMageModuleFostering/ice_import",
+    "type": "magento-module",
+    "license": "OSL-v.3",
+    "homepage": "",
+    "description": "Import categories & products",
+    "authors": [
+    {
+        "name": "Iceshop",
+        "email": "support@iceshop.nl"
+    }
+],
+    "suggest": {
+        "magento-hackathon/magento-composer-installer": "*"
+    }
+}
