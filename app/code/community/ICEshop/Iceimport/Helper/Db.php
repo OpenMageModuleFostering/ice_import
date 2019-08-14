@@ -280,8 +280,7 @@ END;";
                         FROM `{$this->_prefix}iceshop_extensions_logs`
                         WHERE `log_type` = 'error'
                             AND (`timecol` > DATE_SUB(now(), INTERVAL 1 DAY))
-                            ORDER BY `log_id` DESC
-                            LIMIT {$limit};";
+                            ORDER BY `log_id` DESC;";
                 $results = $this->_reader->fetchAll($sql);
                 foreach ($results as $row) {
                     $result_arr[] = $row;
@@ -349,81 +348,6 @@ END;";
     {
         if (!empty($table_name) && is_string($table_name)) {
             return $this->_resource->getTableName($table_name);
-        }
-        return false;
-    }
-
-
-    /**
-     * @param string $setting_key
-     * @param string $setting_value
-     * @access public
-     * @return bool
-     */
-    public function setConfigData($setting_key, $setting_value)
-    {
-        if (isset($setting_key) && isset($setting_value)) {
-            $table_name = $this->getTableName('core/config_data');
-            $sql = "REPLACE INTO `{$table_name}`(`path`, `value`) VALUES(:setting_key, :setting_value);";
-            $binds = array(
-                'setting_key'   => $this->_getConfigKey($setting_key),
-                'setting_value' => $setting_value
-            );
-            $this->_writer->query($sql, $binds);
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * @param string $setting_key
-     * @access public
-     * @return bool|string
-     */
-    public function getConfigData($setting_key)
-    {
-        if (isset($setting_key)) {
-            $table_name = $this->getTableName('core/config_data');
-            $sql = "SELECT `value` FROM `{$table_name}` WHERE `path` = :setting_key;";
-            $binds = array(
-                'setting_key'   => $this->_getConfigKey($setting_key)
-            );
-            $result = $this->_reader->query($sql, $binds);
-            while ( $row = $result->fetch() ) {
-                return $row['value'];
-            }
-        }
-        return false;
-    }
-
-    /**
-     * @param string $setting_key
-     * @access private
-     * @return bool|string
-     */
-    private function _getConfigKey($setting_key)
-    {
-        if (isset($setting_key)) {
-            return 'iceimport/storage/' . $setting_key;
-        }
-        return false;
-    }
-
-    /**
-     * @param string $setting_key
-     * @access public
-     * @return bool
-     */
-    public function unsetConfigData($setting_key)
-    {
-        if (isset($setting_key)) {
-            $table_name = $this->getTableName('core/config_data');
-            $sql = "DELETE FROM `{$table_name}` WHERE `path` = :setting_key;";
-            $binds = array(
-                'setting_key'   => $this->_getConfigKey($setting_key)
-            );
-            $this->_writer->query($sql, $binds);
-            return true;
         }
         return false;
     }

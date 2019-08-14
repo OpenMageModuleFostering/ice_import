@@ -8,10 +8,10 @@
                         <children>
                             <config>
                                 <children>
-                                    <iceshop_iceimport_importprod_root>
-                                        <title>Iceimport Settings</title>
+                                    <importprod_root>
+                                        <title>iceimport Settings</title>
                                         <sort_order>0</sort_order>
-                                    </iceshop_iceimport_importprod_root>
+                                    </importprod_root>
                                     <iceimport_information>
                                         <title>Iceimport Information</title>
                                         <sort_order>30</sort_order>
