@@ -2,7 +2,7 @@
 jQuery.noConflict();
 
 //script which starts after page is loaded
-jQuery(document).ready(function () {
+jQuery(document).ready(function ( jQuery ) {
 
     jQuery('div#content').on('click', 'a.section-toggler-iceimport', function(e){
         toggleIceimportFieldset(this);

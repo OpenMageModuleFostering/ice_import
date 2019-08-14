@@ -367,7 +367,6 @@ class ICEshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
             $this->_connRes->query("INSERT INTO {$this->_tablePrefix}iceshop_iceimport_imported_product_ids (product_id, product_sku) VALUES (:prod_id, :sku) ON DUPLICATE KEY UPDATE product_sku = :sku", array(':prod_id' => $productId, ':sku' => $sku));
         } else {
             if ($this->_getRefreshSetting('import_new_products') == 0) {
-//                $session->setData("counter", (int)--$counter);
                 $session->setData("skipped_counter", (int)++$skipped_counter);
                 return true;
             }
@@ -421,11 +420,7 @@ class ICEshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
             $DB_logger = Mage::helper('iceimport/db');
             $this->deleteOldProducts($DB_logger);
 
-//            $session->unsetData('import_total');
-//            $session->unsetData('counter');
-
             $DB_logger->insertLogEntry('error' . md5(microtime(true)), 'New products skipped while export according to Iceimport settings: ' . $skipped_counter, 'stat');
-//            $session->unsetData('skipped_counter');
 
             $date = date('m/d/Y H:i:s');
             $DB_logger->insertLogEntry('iceimport_import_ended', $date);
@@ -508,7 +503,6 @@ class ICEshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
                                     VALUES (@product_entity_type_id, @attribute_set_id, 'simple', :sku, NOW());
                                     SELECT @product_id := LAST_INSERT_ID();";
             $this->_connRes->query($coreSaveProduct, array(':sku' => $sku));
-            // get product ID
             $prodFetch = $this->_connRes->fetchRow("SELECT @product_id AS prod_id");
             $productId = $prodFetch['prod_id'];
             $newProduct = TRUE;
@@ -592,8 +586,8 @@ class ICEshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
                                 $value = $option_id;
                             }
                             $attributesInit .= "SELECT @product_entity_type_id := `entity_type_id`
-                                                    FROM `{$this->_tablePrefix}eav_attribute`
-                                                    WHERE `attribute_code` = '{$attribute}';";
+                                            FROM `{$this->_tablePrefix}eav_entity_type`
+                                            WHERE entity_type_code = 'catalog_product';";
                             $attributesInit .= "SELECT @{$attribute}_id := `attribute_id`
                                                     FROM `{$this->_tablePrefix}eav_attribute`
                                                     WHERE `attribute_code` = '{$attribute}'
@@ -1093,7 +1087,7 @@ class ICEshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
             $categoryId = $this->_connRes->fetchRow(
                 "SELECT entity_id
                     FROM `{$this->_tablePrefix}catalog_category_entity_varchar`
-                    WHERE `value` REGEXP '[[:<:]]".$unspsc."[[:>:]]'
+                    WHERE `value` REGEXP '[[:<:]]".addslashes($unspsc)."[[:>:]]'
                         AND attribute_id = @unspsc_id"
             );
             return ($categoryId['entity_id']) ? $categoryId['entity_id'] : null;
@@ -1211,49 +1205,6 @@ class ICEshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
                 unset($importData[$attribute]);
 
             }
-            // skip some attributes
-/**            if ($attribute == 'type' ||
-                $attribute == 'supplier_product_code' ||
-                $attribute == 'supplier' ||
-                $attribute == 'leader_categories' ||
-                $attribute == 'leader_store' ||
-                $attribute == 'sprice' ||
-                $attribute == 'euprice' ||
-                $attribute == 'icecat_product_id' ||
-                $attribute == 'icecat_category_id' ||
-                $attribute == 'icecat_vendor_id' ||
-                $attribute == 'icecat_quality' ||
-                $attribute == 'icecat_url' ||
-                $attribute == 'icecat_thumbnail_img' ||
-                $attribute == 'icecat_low_res_img' ||
-                $attribute == 'icecat_high_res_img' ||
-                $attribute == 'tax1' ||
-                $attribute == 'tax2' ||
-                $attribute == 'tax3' ||
-                $attribute == 'tax4' ||
-                $attribute == 'min_quantity' ||
-                $attribute == 'loms' ||
-                $attribute == 'image_label' ||
-                $attribute == 'links_title' ||
-                $attribute == 'small_image_label' ||
-                $attribute == 'tax_rate' ||
-                $attribute == 'gallery' ||
-                $attribute == 'weight_type' ||
-                $attribute == 'sku_type' ||
-                $attribute == 'manage_stock' ||
-                $attribute == 'minimal_price' ||
-                $attribute == 'required_options' ||
-                $attribute == 'samples_title' ||
-                $attribute == 'shipment_type' ||
-                $attribute == 'url_path' ||
-                $attribute == 'recurring_profile' ||
-                $attribute == 'product_keys'
-            ) {
-
-                unset($importData[$attribute]);
-
-            }       */
-
         }
 
         // map default attributes
@@ -1345,9 +1296,7 @@ class ICEshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
                 'status',
                 'visibility',
                 'tax_class_id',
-                'color',
-                'price_view',
-                'manufacturer'
+                'price_view'
             ),
             'text' => array(
                 'recurring_profile',
@@ -1358,7 +1307,6 @@ class ICEshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
                 'total_supplier_stock'
             ),
             'decimal' => array(
-                'cost',
                 'group_price',
                 'weight',
                 'special_price',
