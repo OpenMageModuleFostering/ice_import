@@ -2,7 +2,7 @@
 <config>
     <modules>
         <Capacitywebsolutions_Importproduct>
-            <version>1.0</version>
+            <version>1.4.0</version>
         </Capacitywebsolutions_Importproduct>
     </modules>
     <global>

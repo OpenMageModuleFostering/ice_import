@@ -222,7 +222,7 @@ class Capacitywebsolutions_Importproduct_Model_Convert_Adapter_Product extends M
     // get category id
     $categoriesToActiveConf = Mage::getStoreConfig('importprod_root/importprod/category_active', 
                                 $storeId);  
-    $categoryId = $this->_addCategories($category, $storeId, $unspsc, $unspscPath, $categoriesToActiveConf);
+    $categoryIds = $this->_addCategories($category, $storeId, $unspsc, $unspscPath, $categoriesToActiveConf);
 
     // get url key
     $url = '';
@@ -233,7 +233,7 @@ class Capacitywebsolutions_Importproduct_Model_Convert_Adapter_Product extends M
     $productData['varchar']['url_key'] = $url;
 
     // if new product then ovewrride product id from null to id
-    $productId = $this->_coreSave($productData, $productId, $storeId, $sku, $categoryId);
+    $productId = $this->_coreSave($productData, $productId, $storeId, $sku, $categoryIds);
 
     // add product image to queue
     if (Mage::getStoreConfig('importprod_root/importprod/import_images')) {
@@ -291,7 +291,7 @@ class Capacitywebsolutions_Importproduct_Model_Convert_Adapter_Product extends M
     return true;
   }
 
-  protected function _coreSave(array $entityData, $productId = null, $storeId = 0, $sku, $categoryId) {
+  protected function _coreSave(array $entityData, $productId = null, $storeId = 0, $sku, $categoryIds) {
     if ($productId === null) {
       // add product to store
       $coreSaveProduct = "INSERT INTO `" . $this->_tablePrefix . "catalog_product_entity` (`entity_type_id`, `attribute_set_id`, `type_id`, `sku`, `created_at`) VALUES
@@ -346,15 +346,31 @@ class Capacitywebsolutions_Importproduct_Model_Convert_Adapter_Product extends M
 		    }
 	    }
     }
+ 
 
     // categories
-    $coreSaveSQL .= "
-      INSERT INTO `" . $this->_tablePrefix . "catalog_category_product` (`category_id`, `product_id`, `position`) VALUES 
-      (" . (int)$categoryId . ", @product_id, 1) ON DUPLICATE KEY UPDATE `position` = 1;
-    ";
-
+    $coreSaveSQL .= "INSERT INTO `" . $this->_tablePrefix . "catalog_category_product` (`category_id`, `product_id`, `position`) VALUES ";
+    $counter = 1;
+    $categoryIds[] = Mage::app()->getStore(1)->getRootCategoryId();
+    foreach ($categoryIds as $categoryId) {
+      if ($counter < count($categoryIds)) {
+        $coreSaveSQL .= " (" . (int)$categoryId . ", @product_id, 1) , ";    
+      } else if ($counter == count($categoryIds)) {
+        $coreSaveSQL .= " (" . (int)$categoryId . ", @product_id, 1) ON DUPLICATE KEY UPDATE `position` = 1 ";
+      }
+      $counter++;
+    }
     try{
       $query = $this->_connRes->query($coreSaveSQL, $bindArray);
+      
+      /*$newCategories = $categoryIds;
+      $newCategories[] = Mage::app()->getStore(1)->getRootCategoryId();
+      $product = Mage::getModel('catalog/product')->load($productId);
+      $product->setCategoryIds(
+        array_merge($product->getCategoryIds(), $newCategories)
+      );
+      echo ' 367 ';
+      $product->save();*/
     } catch(Exception $e) {
       echo $e->getMessage();
     }
@@ -440,6 +456,8 @@ class Capacitywebsolutions_Importproduct_Model_Convert_Adapter_Product extends M
 
     // check if product exists
     $categoryId = $this->_getCategoryIdByUnspsc($unspsc);
+    $categoryIds = array();
+    
     if (!empty($categoryId)) {
       // merge categories by unspsc
       $categoryMergedArray = $this->_categoryMapper($categories, $unspscPath);
@@ -482,6 +500,7 @@ class Capacitywebsolutions_Importproduct_Model_Convert_Adapter_Product extends M
           $cid = $category->getId();
           if (!empty($cid)) {
             if (!empty($categoryId)) {
+              $categoryIds[] = (int)$categoryId;
               $activeSetter .= "(@category_entity_type_id, @category_active_id, :store_id, " . $categoryId . ", 1),
                                 (@category_entity_type_id, @category_active_id, 0, " . $categoryId . ", 1), ";
             } else {
@@ -500,7 +519,7 @@ class Capacitywebsolutions_Importproduct_Model_Convert_Adapter_Product extends M
            $this->_connRes->query($activeSetter, array(':store_id' => $storeId));
         }
       }
-      return $categoryId;
+      return $categoryIds;
     } else {
 
       // merge unspcs to current name in unspcs & name path's
@@ -512,12 +531,13 @@ class Capacitywebsolutions_Importproduct_Model_Convert_Adapter_Product extends M
         $checkCategoryId = $this->_getCategoryIdByUnspsc($category['unspsc']);
         if ($checkCategoryId != null) {
           $categoryId = $this->_buildCategoryTree($checkCategoryId, $storeId, $categoryCreateArray, $categoryActive);
+          $categoryIds[] = (int)$categoryId;
           break;
         } else {
           $categoryCreateArray[] = $category;
         } 
       }
-      return $categoryId;
+      return $categoryIds;
     }
   }
 
@@ -859,7 +879,7 @@ class Capacitywebsolutions_Importproduct_Model_Convert_Adapter_Product extends M
     );
   }
   
-  // Count child categories products and set them inactive if they have no
+  // Count child categories products and set them inactive if they have no products
   public function CountChildProd($child_cat) {  
     foreach ($child_cat as $cat) {
       $query = "SELECT `entity_id` FROM `" . $this->_tablePrefix . "catalog_category_entity` WHERE parent_id = :cat_id";
