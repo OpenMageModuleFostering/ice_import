@@ -14,14 +14,9 @@ class Iceshop_Iceimport_Model_Dataflow_Convert_Parser_Csv extends Mage_Dataflow_
 
     public function parse()
     {
-        $entityTypeId = Mage::getModel('eav/entity')
-            ->setType('catalog_product')
-            ->getTypeId();
-        $attributeSetCollection = Mage::getModel('eav/entity_attribute_set')
-            ->getCollection()
-            ->setEntityTypeFilter($entityTypeId);
-        $default_attr_set = $attributeSetCollection->getData();
-        $attributes = Mage::getModel('catalog/product_attribute_api')->items($default_attr_set[0]['attribute_set_id'] );
+        $default_attr_set_id = Mage::getModel('catalog/product')->getResource()->getEntityType()->getDefaultAttributeSetId();
+        $attributes = Mage::getModel('catalog/product_attribute_api')->items($default_attr_set_id);
+
         $req_attributes = array('brand_name', 'ean', 'mpn', 'delivery_eta', 'is_iceimport');
         $not_found_attr = array();
         foreach($req_attributes as $req_attribute){

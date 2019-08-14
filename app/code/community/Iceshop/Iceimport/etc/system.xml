@@ -54,6 +54,7 @@
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
+                            <enabled>1</enabled>
                         </import_product_brand>
                         <import_product_name translate="label">
                             <label>Import product name</label>

@@ -106,6 +106,15 @@ class Iceshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
             $message = Mage::helper('catalog')->__('Skip import row, required field "%s" not defined', 'categories');
             Mage::throwException($message);
         }
+        if (!empty($iceimportAttributes['categories'])) {
+            $cat_names = explode('/', $iceimportAttributes['categories']);
+            foreach($cat_names as $cat_name){
+                if(empty($cat_name)){
+                    $message = Mage::helper('catalog')->__('Skip import row, some of categories does not have name');
+                    Mage::throwException($message);
+                }
+            }
+        }
         $category = $iceimportAttributes['categories'];
         if (empty($iceimportAttributes['unspsc'])) {
             $message = Mage::helper('catalog')->__('Skip import. Category UNSPSC not defined in store');
@@ -116,8 +125,20 @@ class Iceshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
             $message = Mage::helper('catalog')->__('Skip import. Category UNSPSC path not defined in store');
             Mage::throwException($message);
         }
+        if (!empty($iceimportAttributes['unspsc_path'])) {
+            $cat_unspscs = explode('/', $iceimportAttributes['unspsc_path']);
+            foreach($cat_unspscs as $cat_unspsc){
+                if(empty($cat_unspsc)){
+                    $message = Mage::helper('catalog')->__('Skip import row, some of categories does not have UNSPSC');
+                    Mage::throwException($message);
+                }
+            }
+        }
         $unspscPath = $iceimportAttributes['unspsc_path'];
-
+        if(!empty($cat_unspscs) && !empty($cat_names) && count($cat_names) != count($cat_unspscs)){
+            $message = Mage::helper('catalog')->__('Skip import row, categories names does not match categories UNSPSC');
+            Mage::throwException($message);
+        }
         // set in / out of stock
         $isInStock = 0;
         if (!empty($iceimportAttributes['is_in_stock'])) {
@@ -222,14 +243,15 @@ class Iceshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
             // check import type (Import only price & qty or all product info)
             $stockConf = (int)Mage::getStoreConfig('importprod_root/importprod/import_stock', $storeId);
             $priceConf = (int)Mage::getStoreConfig('importprod_root/importprod/import_prices', $storeId);
+
             $productId = $this->_coreSave($productData, $productId, $storeId, $sku, $categoryIds);
             $this->_corePriceStock($websiteId, $productId, $price, $qty, $sku, $isInStock, $stockConf, $priceConf);
-            $this->_connRes->query('INSERT INTO iceshop_iceimport_imported_product_ids (product_id, product_sku) VALUES (:prod_id, :sku) ON DUPLICATE KEY UPDATE product_sku = :sku', array(':prod_id' => $productId, ':sku' => $sku));
+            $this->_connRes->query('INSERT INTO ' . $this->_tablePrefix . 'iceshop_iceimport_imported_product_ids (product_id, product_sku) VALUES (:prod_id, :sku) ON DUPLICATE KEY UPDATE product_sku = :sku', array(':prod_id' => $productId, ':sku' => $sku));
         } else {
             $productId = $this->_coreSave($productData, $productId, $storeId, $sku, $categoryIds);
             // add price & stock
             $this->_corePriceStock($websiteId, $productId, $price, $qty, $sku, $isInStock);
-            $this->_connRes->query('INSERT INTO iceshop_iceimport_imported_product_ids (product_id, product_sku) VALUES (:prod_id, :sku) ON DUPLICATE KEY UPDATE product_sku = :sku', array(':prod_id' => $productId, ':sku' => $sku));
+            $this->_connRes->query('INSERT INTO ' . $this->_tablePrefix . 'iceshop_iceimport_imported_product_ids (product_id, product_sku) VALUES (:prod_id, :sku) ON DUPLICATE KEY UPDATE product_sku = :sku', array(':prod_id' => $productId, ':sku' => $sku));
         }
 
         // add product image to queue
@@ -282,6 +304,44 @@ class Iceshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
 
         return true;
     }
+    public function getAttributeOptionValue($arg_attribute, $arg_value) {
+        $attribute_model = Mage::getModel('eav/entity_attribute');
+        $attribute_options_model= Mage::getModel('eav/entity_attribute_source_table') ;
+
+        $attribute_code = $attribute_model->getIdByCode('catalog_product', $arg_attribute);
+        $attribute = $attribute_model->load($attribute_code);
+
+        $attribute_table = $attribute_options_model->setAttribute($attribute);
+
+        $options = $attribute_options_model->getAllOptions(false);
+
+        foreach($options as $option) {
+            if ($option['label'] == $arg_value) {
+                return $option['value']; }
+        }
+        return false;
+    }
+
+
+    public function addAttributeOption($arg_attribute, $arg_value) {
+        $attribute_model = Mage::getModel('eav/entity_attribute');
+        $attribute_options_model= Mage::getModel('eav/entity_attribute_source_table') ;
+
+        $attribute_code = $attribute_model->getIdByCode('catalog_product', $arg_attribute);
+        $attribute = $attribute_model->load($attribute_code);
+
+        $attribute_table = $attribute_options_model->setAttribute($attribute);
+        $options = $attribute_options_model->getAllOptions(false);
+
+        $value['option'] = array($arg_value,$arg_value);
+        $result = array('value' => $value);
+
+        $attribute->setData('option',$result);
+        $attribute->save();
+
+        return $this->getAttributeOptionValue($arg_attribute, $arg_value);
+    }
+
 
     protected function _coreSave(array $entityData, $productId = null, $storeId = 0, $sku, $categoryIds)
     {
@@ -315,6 +375,7 @@ class Iceshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
                 }
             }
         }
+
         $bindArray[':store_id'] = $storeId;
 
         foreach ($entityData as $type => $typeAttributes) {
@@ -322,12 +383,23 @@ class Iceshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
             if ($type != 'spec') {
                 $tailCoreSaveSQL = '';
                 $attributesInit = '';
-
+                if($type == 'select'){
+                    $type = 'int';
+                    $is_select = 1;
+                }else{
+                    $is_select = 0;
+                }
                 if (!empty($typeAttributes)) {
                     $tailCoreSaveSQL .= "
                         INSERT INTO `" . $this->_tablePrefix . "catalog_product_entity_" . $type . "` (`entity_type_id`, `attribute_id`, `store_id`, `entity_id`, `value`) VALUES ";
-                    foreach ($typeAttributes as $attribute => $value) {
-
+                        foreach ($typeAttributes as $attribute => $value) {
+                            if($is_select == 1){
+                                $option_id = $this->getAttributeOptionValue($attribute, $value);
+                                if(empty($option_id)){
+                                    $option_id = $this->addAttributeOption($attribute, $value);
+                                }
+                                $value = $option_id;
+                            }
                             $attributesInit .= "
                               SELECT @" . $attribute . "_id := `attribute_id` FROM `" . $this->_tablePrefix . "eav_attribute` WHERE
                                 `attribute_code` = '" . $attribute . "' AND entity_type_id = @product_entity_type_id;
@@ -338,7 +410,7 @@ class Iceshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
                               (@product_entity_type_id, @" . $attribute . "_id, :store_id, @product_id, :" . $attribute . " ), ";
                             $bindArray[':' . $attribute] = $value;
 
-                    }
+                        }
                     $tailCoreSaveSQL = substr($tailCoreSaveSQL, 0, -2);
                     $tailCoreSaveSQL .= "
             ON DUPLICATE KEY UPDATE
@@ -346,13 +418,13 @@ class Iceshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
           ";
                 }
                 $coreSaveSQL .= $attributesInit . $tailCoreSaveSQL;
-            } else {
+            }else{
                 foreach ($typeAttributes as $attribute => $attributeData) {
                     $prod_id_field = $attributeData['prod_id_field'];
                     $table = $attributeData['table'];
                     $field = $attributeData['field'];
                     $value = $attributeData['value'];
-                    if (!empty($table) && !empty($field)) {
+                    if (!emptcy($table) && !empty($field)) {
                         $coreSaveSQL .= "
 			      UPDATE `" . $this->_tablePrefix . $table . "` SET `" . $field . "` = :" . $attribute . " WHERE `" . $prod_id_field . "` = @product_id;
 		        ";
@@ -364,14 +436,23 @@ class Iceshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
         // categories
         $coreSaveSQL .= "INSERT INTO `" . $this->_tablePrefix . "catalog_category_product` (`category_id`, `product_id`, `position`) VALUES ";
         $counter = 1;
-        $categoryIds[] = Mage::app()->getStore(1)->getRootCategoryId();
-        foreach ($categoryIds as $categoryId) {
-            if ($counter < count($categoryIds)) {
+        
+        $mapCategoryIds = array();
+        $mapCategoryIds[] = array_pop($categoryIds);
+        $delCategoryIds = array_diff($categoryIds, $mapCategoryIds);
+
+        foreach ($mapCategoryIds as $categoryId) {
+            if ($counter < count($mapCategoryIds)) {
                 $coreSaveSQL .= " (" . (int)$categoryId . ", @product_id, 1) , ";
-            } else if ($counter == count($categoryIds)) {
-                $coreSaveSQL .= " (" . (int)$categoryId . ", @product_id, 1) ON DUPLICATE KEY UPDATE `position` = 1 ";
+            } else if ($counter == count($mapCategoryIds)) {
+                $coreSaveSQL .= " (" . (int)$categoryId . ", @product_id, 1) ON DUPLICATE KEY UPDATE `position` = 1; ";
             }
             $counter++;
+        }
+        if(!empty($delCategoryIds)){
+            foreach ($delCategoryIds as $delCategoryId) {
+                $coreSaveSQL .= "DELETE FROM `" . $this->_tablePrefix . "catalog_category_product` WHERE `category_id` = ". (int)$delCategoryId ." AND `product_id` = @product_id;";
+            }
         }
         try {
             $bindArray[':' . $attribute] = $value;
@@ -749,12 +830,24 @@ class Iceshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
             }
         }
 
+        if (!empty($importData)) {
+            foreach ($importData as $attributeCode => $value) {
+                $frontendTypeFetch = $this->_connRes->fetchRow("SELECT frontend_input FROM `" . $this->_tablePrefix . "eav_attribute` WHERE `attribute_code` = :code", array(':code' => $attributeCode));
+                if($frontendTypeFetch['frontend_input'] == 'select'){
+                    $frontendType = $frontendTypeFetch['frontend_input'];
+                    if ($frontendType != 'static' && !empty($frontendType) && $value  != '') {
+                        $productData[$frontendType][$attributeCode] = $value;
+                        unset($importData[$attributeCode]);
+                    }
+                }
+            }
+        }
         // map custom attributes
         if (!empty($importData)) {
             foreach ($importData as $attributeCode => $value) {
                 $backendTypeFetch = $this->_connRes->fetchRow("SELECT backend_type FROM `" . $this->_tablePrefix . "eav_attribute` WHERE `attribute_code` = :code", array(':code' => $attributeCode));
                 $backendType = $backendTypeFetch['backend_type'];
-                if ($backendType != 'static' && !empty($backendType) && $value  != '') {
+                if (($backendType != 'static' && !empty($backendType) && $value  != '')) {
                     $productData[$backendType][$attributeCode] = $value;
                     unset($importData[$attributeCode]);
                 }
@@ -776,6 +869,7 @@ class Iceshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
 
     protected function _getDefaultAttributesList()
     {
+
         return array(
             'varchar' => array(
                 'gift_message_available',
@@ -785,7 +879,6 @@ class Iceshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
                 'options_container',
                 'page_layout',
                 'mpn',
-                'brand_name',
                 'name',
                 'url_key',
                 'meta_description',

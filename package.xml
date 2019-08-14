@@ -1,22 +1,23 @@
 <?xml version="1.0"?>
 <package>
     <name>ice_import</name>
-    <version>1.5.0</version>
+    <version>1.6.0</version>
     <stability>stable</stability>
     <license uri="http://opensource.org/licenses/osl-3.0.php">OSL v.3</license>
     <channel>community</channel>
     <extends/>
     <summary>Import categories &amp;amp; products</summary>
     <description>This extension can use to import products with categories, multiple images and custom options from CSV file.</description>
-    <notes>- Added Magento V1.8 Compatibility&#xD;
-- Added batch of settings for information to be imported (desription, name, stock, price and etc)&#xD;
-- Speed improvements&#xD;
-- Fixed issues with TimeOut&#xD;
-- Changed namespaces</notes>
+    <notes>Bugfixes:&#xD;
+- fixed bug with database table prefix&#xD;
+- fixed bug with checking required attributes in default attribute set&#xD;
+Improvements:&#xD;
+- Changed logic of assigning categories, products assigned only to the last category in the tree&#xD;
+- Added ability to save data in dropdown fields as example "Brand", then it's possible to use in layered navigation</notes>
     <authors><author><name>Iceshop</name><user>Iceshop</user><email>support@iceshop.nl</email></author></authors>
-    <date>2013-11-13</date>
-    <time>19:52:32</time>
-    <contents><target name="magecommunity"><dir name="Iceshop"><dir name="Iceimport"><dir name="Model"><dir name="Convert"><dir name="Adapter"><file name="Product.php" hash="04350eb3276aa632cd70c98b8c44b2d5"/></dir></dir><dir name="Dataflow"><dir name="Batch"><file name="Import.php" hash="90a3fdd194991e4b1a0c1e6dd2ba3db1"/></dir><dir name="Convert"><dir name="Parser"><file name="Csv.php" hash="9f1dbe6d5117d92a19038cc1d64bd162"/></dir></dir></dir><file name="Observer.php" hash="b392ef90dec09ff51e3a0984f3523677"/><dir name="System"><dir name="Config"><file name="Categoryactivity.php" hash="c60f739b06f29e47f3098bf91bc0b8fd"/><file name="Defaulttax.php" hash="d5d3b7b5862ef1264ee4b960e8dbb627"/><file name="Imageimport.php" hash="d4f67a21d5b8731716c6246a30f7a01f"/><file name="Importdeliveryeta.php" hash="0807017f687f4adeb76129dcb7f5358c"/><file name="Importprices.php" hash="1367181841e8c93f67160dbc497fa658"/><file name="Importproductbrand.php" hash="5b210f5ae30bcd69c8215f0db15f873f"/><file name="Importproductdescription.php" hash="47e0df7a29e9eb9b35e6b9b85a94d757"/><file name="Importproductean.php" hash="4e5ba806f6c31705df6797e9703a714c"/><file name="Importproductmpn.php" hash="9dc525200e8782f9161e59ea20d97517"/><file name="Importproductname.php" hash="c9a6c970105bf3ce9a368351fa27d2d6"/><file name="Importproductshdescription.php" hash="86b361fe2a483757cbd3c37a7cd556bb"/><file name="Importproductshsudescription.php" hash="c0b75d1b619f39db30d4529cc2981652"/><file name="Importproductsudescription.php" hash="8b21d2e05ac3e8f47a6eda5380fb0f49"/><file name="Importstock.php" hash="dcd5838f2b8d21f374b621bc440d9a7c"/><file name="Lockproddetails.php" hash="66107a746bb9a50c8d74e3f27bdaaedf"/></dir></dir></dir><dir name="etc"><file name="config.xml" hash="5faff23af0e722d7e92af56b5eff63d4"/><file name="system.xml" hash="e76ed11ef4b797c0cf3d8553e1409e8d"/></dir><dir name="sql"><dir name="iceimport_setup"><file name="mysql4-install-1.5.0.php" hash="c90722a11b7de7d23d92f12bd37d3706"/><file name="mysql4-upgrade-0.1.0-1.5.0.php" hash="26cded28767c71f2d4945e9866b7feb0"/><file name="mysql4-upgrade-1.4.0-1.5.0.php" hash="07b4b6f1e01d253db017038bd1985170"/><file name="uninstall-old-version.php" hash="291f724845f8e62d51ccdf61baf81b37"/></dir></dir></dir></dir></target><target name="mageetc"><dir name="modules"><file name="Iceshop_Iceimport.xml" hash="c22b6e566abee45bbb2102b3239cd6a2"/></dir></target></contents>
+    <date>2014-02-19</date>
+    <time>12:18:02</time>
+    <contents><target name="magecommunity"><dir name="Iceshop"><dir name="Iceimport"><dir name="Model"><dir name="Convert"><dir name="Adapter"><file name="Product.php" hash="7125fba31031669fb49188975581cf65"/></dir></dir><dir name="Dataflow"><dir name="Batch"><file name="Import.php" hash="90a3fdd194991e4b1a0c1e6dd2ba3db1"/></dir><dir name="Convert"><dir name="Parser"><file name="Csv.php" hash="9d655cf42f686084327f2e6de215d9fb"/></dir></dir></dir><file name="Observer.php" hash="b392ef90dec09ff51e3a0984f3523677"/><dir name="System"><dir name="Config"><file name="Categoryactivity.php" hash="c60f739b06f29e47f3098bf91bc0b8fd"/><file name="Defaulttax.php" hash="d5d3b7b5862ef1264ee4b960e8dbb627"/><file name="Imageimport.php" hash="d4f67a21d5b8731716c6246a30f7a01f"/><file name="Importdeliveryeta.php" hash="0807017f687f4adeb76129dcb7f5358c"/><file name="Importprices.php" hash="1367181841e8c93f67160dbc497fa658"/><file name="Importproductbrand.php" hash="5b210f5ae30bcd69c8215f0db15f873f"/><file name="Importproductdescription.php" hash="47e0df7a29e9eb9b35e6b9b85a94d757"/><file name="Importproductean.php" hash="4e5ba806f6c31705df6797e9703a714c"/><file name="Importproductmpn.php" hash="9dc525200e8782f9161e59ea20d97517"/><file name="Importproductname.php" hash="c9a6c970105bf3ce9a368351fa27d2d6"/><file name="Importproductshdescription.php" hash="86b361fe2a483757cbd3c37a7cd556bb"/><file name="Importproductshsudescription.php" hash="c0b75d1b619f39db30d4529cc2981652"/><file name="Importproductsudescription.php" hash="8b21d2e05ac3e8f47a6eda5380fb0f49"/><file name="Importstock.php" hash="dcd5838f2b8d21f374b621bc440d9a7c"/><file name="Lockproddetails.php" hash="66107a746bb9a50c8d74e3f27bdaaedf"/></dir></dir></dir><dir name="etc"><file name="config.xml" hash="9dd90caa78c5eeac27c8c02858b9738a"/><file name="system.xml" hash="17cbe85949a33a4eb3fa301092714fa0"/></dir><dir name="sql"><dir name="iceimport_setup"><file name="mysql4-install-1.5.0.php" hash="c90722a11b7de7d23d92f12bd37d3706"/><file name="mysql4-upgrade-0.1.0-1.5.0.php" hash="26cded28767c71f2d4945e9866b7feb0"/><file name="mysql4-upgrade-1.4.0-1.5.0.php" hash="07b4b6f1e01d253db017038bd1985170"/><file name="uninstall-old-version.php" hash="291f724845f8e62d51ccdf61baf81b37"/></dir></dir></dir></dir></target><target name="mageetc"><dir name="modules"><file name="Iceshop_Iceimport.xml" hash="c22b6e566abee45bbb2102b3239cd6a2"/></dir></target></contents>
     <compatible/>
     <dependencies><required><php><min>5.2.0</min><max>6.0.0</max></php></required></dependencies>
 </package>
