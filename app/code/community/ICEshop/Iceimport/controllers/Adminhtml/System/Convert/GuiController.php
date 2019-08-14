@@ -54,11 +54,22 @@ class ICEshop_Iceimport_Adminhtml_System_Convert_GuiController extends Mage_Admi
 
             $iceimport = new Iceimport();
 
-            try {
+            $date = date('m/d/Y H:i:s');
 
+            $DB_logger = Mage::helper('iceimport/db');
+            $DB_logger->insertLogEntry('iceimport_import_started', $date);
+
+            try {
                 $iceimport->importProduct($importData);
             } catch (Exception $e) {
+                $iceimport->deleteTemFileForAttributes();
+                $iceimport->deleteTempFileForCategories();
+                $iceimport->deleteTempFileForCatalogCategoryProductInsert();
+                $iceimport->deleteTempTableCats();
+                $iceimport->deleteTempTableProds();
                 $errors[] = $e->getMessage();
+                $date = date('m/d/Y H:i:s');
+                $DB_logger->insertLogEntry('iceimport_import_ended', $date);
             }
 
             if (method_exists($adapter, 'getEventPrefix')) {
@@ -83,11 +94,35 @@ class ICEshop_Iceimport_Adminhtml_System_Convert_GuiController extends Mage_Admi
         }
     }
 
+    /**
+     * Update path to children category/root
+     */
+    public function updateCatalogCategoryChildren(){
+        try{
+            $db_res = Mage::getSingleton('core/resource')->getConnection('core_write');
+            $tablePrefix = '';
+            $tPrefix = (array)Mage::getConfig()->getTablePrefix();
+            if (!empty($tPrefix)) {
+                $tablePrefix = $tPrefix[0];
+            }
+            $db_res->query('UPDATE `'.$tablePrefix.'catalog_category_entity` SET children_count = (SELECT COUNT(*) FROM (SELECT * FROM `'.$tablePrefix.'catalog_category_entity`) AS table2 WHERE path LIKE CONCAT(`'.$tablePrefix.'catalog_category_entity`.path,"/%"));');
+        } catch (Exception $e){
+        }
+    }
+
     public function batchFinishAction()
     {
 
+        $db_res = Mage::getSingleton('core/resource')->getConnection('core_write');
+        $tablePrefix = '';
+        $tPrefix = (array)Mage::getConfig()->getTablePrefix();
+        if (!empty($tPrefix)) {
+            $tablePrefix = $tPrefix[0];
+        }
+
         $DB_logger = Mage::helper('iceimport/db');
         $delete_old_products = (int)Mage::getStoreConfig('iceshop_iceimport_importprod_root/importprod/delete_old_products');
+        $category_sort = (int)Mage::getStoreConfig('iceshop_iceimport_importprod_root/importprod/category_sort');
 
         $batchId = $this->getRequest()->getParam('id');
         if ($batchId) {
@@ -107,9 +142,30 @@ class ICEshop_Iceimport_Adminhtml_System_Convert_GuiController extends Mage_Admi
                 $this->getResponse()->setBody(Mage::helper('core')->jsonEncode($result));
             }
         }
+
+        $select_count_imported_products = $db_res->query("SELECT COUNT(DISTINCT product_sku) as count FROM {$tablePrefix}iceshop_iceimport_imported_product_ids WHERE product_sku IS NOT NULL;");
+        $count_imported_products = $select_count_imported_products->fetch()['count'];
+        $DB_logger->insertLogEntry('iceimport_count_imported_products', $count_imported_products);
+
         if ($delete_old_products) {
             $iceimport = new Iceimport();
             $iceimport->deleteOldProducts($DB_logger);
         }
+
+        if ($category_sort) {
+            if (!isset($iceimport)) {
+                $iceimport = new Iceimport();
+            }
+            $iceimport->runCategoriesSorting();
+        }
+        try {
+            $this->updateCatalogCategoryChildren();
+            $db_res->query("TRUNCATE {$tablePrefix}dataflow_batch_import");
+        } catch (Exception $e) {
+            $DB_logger->insertLogEntry('iceimport_import_status_cron', 'Failed');
+            throw new Exception($e->getMessage());
+        }
+        $date = date('m/d/Y H:i:s');
+        $DB_logger->insertLogEntry('iceimport_import_ended', $date);
     }
 }

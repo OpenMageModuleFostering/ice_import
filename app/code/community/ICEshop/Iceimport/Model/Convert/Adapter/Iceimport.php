@@ -356,6 +356,8 @@ class Iceimport
 
         $this->deleteTempFileForCatalogCategoryProductInsert();
 
+        $categoriesToProductsConf = (int)Mage::getStoreConfig('iceshop_iceimport_importprod_root/importprod/update_categories_to_product');
+
         $arValues = $this->addCatIdToArray($offset);
         $columns = ['category_id', 'product_id'];
         $fp = fopen($this->filenameValues, 'w+');
@@ -374,8 +376,10 @@ class Iceimport
             return $elements['entity_id'];
         }, $arValues);
 
-        if (!empty($final)) {
-            $this->db_magento->query("DELETE FROM {$this->tablePrefix}catalog_category_product WHERE product_id IN (" . implode(',', $final) . ");");
+        if ($categoriesToProductsConf) {
+            if (!empty($final)) {
+                $this->db_magento->query("DELETE FROM {$this->tablePrefix}catalog_category_product WHERE product_id IN (" . implode(',', $final) . ");");
+            }
         }
     }
 
@@ -539,7 +543,7 @@ class Iceimport
 
         $select_unspsc_id = $this->db_magento->query("SELECT attribute_id FROM `{$this->tablePrefix}eav_attribute` WHERE attribute_code = 'unspsc' AND entity_type_id = $category_entity_type;");
         $unspsc_id = $select_unspsc_id->fetch()['attribute_id'];
-        $this->db_magento->query("INSERT INTO {$this->tablePrefix}catalog_category_entity (`entity_type_id`, `attribute_set_id`, `path`, `level`, `created_at`, `updated_at`) SELECT $category_entity_type, $attribute_set_id, tc.unspsc_path_c, tc.level, '$now', '$now' FROM {$this->tablePrefix}temp_cats tc WHERE unspsc_c NOT IN (SELECT value FROM {$this->tablePrefix}catalog_category_entity_varchar WHERE attribute_id = $unspsc_id) GROUP BY tc.unspsc_path_c;");
+        $this->db_magento->query("INSERT INTO {$this->tablePrefix}catalog_category_entity (`entity_type_id`, `attribute_set_id`, `path`, `level`, `children_count`, `position`, `created_at`, `updated_at`) SELECT $category_entity_type, $attribute_set_id, tc.unspsc_path_c, tc.level, 0, 1, '$now', '$now' FROM {$this->tablePrefix}temp_cats tc WHERE unspsc_c NOT IN (SELECT value FROM {$this->tablePrefix}catalog_category_entity_varchar WHERE attribute_id = $unspsc_id) GROUP BY tc.unspsc_path_c;");
     }
 
     public function updateCategoryPath ()
@@ -686,7 +690,7 @@ class Iceimport
 
         // categories
         $categoriesConf = (int)Mage::getStoreConfig('iceshop_iceimport_importprod_root/importprod/update_categories_from_csv');
-        $categoriesToActiveConf = Mage::getStoreConfig('iceshop_iceimport_importprod_root/importprod/category_active');
+        $categoriesToActiveConf = (int)Mage::getStoreConfig('iceshop_iceimport_importprod_root/importprod/category_active');
 
         // mapping
         $config_mpn = Mage::getStoreConfig('iceshop_iceimport_importprod_root/importprod/attribute_mapping_mpn');
@@ -736,20 +740,6 @@ FROM {$this->tablePrefix}import_feed impf WHERE sku NOT IN (SELECT sku FROM {$th
 
                     foreach ($value as $k => $attr) {
                         $front_input = false;
-                        if ($attr == 'mpn' && !$productmpnConf ||
-                            $attr == 'ean' && !$producteanConf ||
-                            $attr == 'brand_name' && !$productbrandConf ||
-                            $attr == 'delivery_eta' && !$deliveryetaConf ||
-                            $attr == 'description' && !$productdescriptionConf ||
-                            $attr == 'short_description' && !$productshdescriptionConf ||
-                            $attr == 'visibility' && !$updateVisibilityFromCsvConf ||
-                            $attr == 'url_key' && !$updateUrlKeyFromCsvConf ||
-                            $attr == 'name' && !$productnameConf ||
-                            $attr == 'price' && !$productpricesConf ||
-                            $attr == 'status' && !$updateStatusFromCsvConf
-                        ) {
-                            continue;
-                        }
 
                         $attr_for_select = $attr;
 
@@ -844,9 +834,21 @@ FROM {$this->tablePrefix}import_feed impf WHERE sku NOT IN (SELECT sku FROM {$th
                                 $counter++;
                             }
 
-                            $this->db_magento->query("UPDATE {$this->tablePrefix}catalog_product_entity_{$post_fix} cpek JOIN {$this->tablePrefix}import_feed impf ON impf.entity_id = cpek.entity_id SET cpek.value = impf.$attr WHERE cpek.attribute_id = $attribute_id AND cpek.value <> impf.$attr AND cpek.store_id = impf.store AND cpek.entity_type_id = impf.entity_type_id;");
-                            $this->db_magento->query("UPDATE {$this->tablePrefix}catalog_product_entity_{$post_fix} cpek JOIN {$this->tablePrefix}import_feed impf ON impf.entity_id = cpek.entity_id SET cpek.value = impf.$attr WHERE cpek.attribute_id = $attribute_id AND cpek.value <> impf.$attr AND cpek.store_id = 0 AND cpek.entity_type_id = impf.entity_type_id;");
-
+                            if ($attr == 'mpn' && $productmpnConf ||
+                                $attr == 'ean' && $producteanConf ||
+                                $attr == 'brand_name' && $productbrandConf ||
+                                $attr == 'delivery_eta' && $deliveryetaConf ||
+                                $attr == 'description' && $productdescriptionConf ||
+                                $attr == 'short_description' && $productshdescriptionConf ||
+                                $attr == 'visibility' && $updateVisibilityFromCsvConf ||
+                                $attr == 'url_key' && $updateUrlKeyFromCsvConf ||
+                                $attr == 'name' && $productnameConf ||
+                                $attr == 'price' && $productpricesConf ||
+                                $attr == 'status' && $updateStatusFromCsvConf
+                            ) {
+                                $this->db_magento->query("UPDATE {$this->tablePrefix}catalog_product_entity_{$post_fix} cpek JOIN {$this->tablePrefix}import_feed impf ON impf.entity_id = cpek.entity_id SET cpek.value = impf.$attr WHERE cpek.attribute_id = $attribute_id AND cpek.value <> impf.$attr AND cpek.store_id = impf.store AND cpek.entity_type_id = impf.entity_type_id;");
+                                $this->db_magento->query("UPDATE {$this->tablePrefix}catalog_product_entity_{$post_fix} cpek JOIN {$this->tablePrefix}import_feed impf ON impf.entity_id = cpek.entity_id SET cpek.value = impf.$attr WHERE cpek.attribute_id = $attribute_id AND cpek.value <> impf.$attr AND cpek.store_id = 0 AND cpek.entity_type_id = impf.entity_type_id;");
+                            }
                         }
                     }
                 }
@@ -875,12 +877,18 @@ FROM {$this->tablePrefix}import_feed impf WHERE sku NOT IN (SELECT sku FROM {$th
             if ($productstockConf) {
                 $this->db_magento->query("UPDATE {$this->tablePrefix}import_feed SET qty = 0 WHERE qty IS NULL;");
                 $this->db_magento->query("INSERT INTO {$this->tablePrefix}cataloginventory_stock_item (`product_id`, `stock_id`, `qty`, `is_in_stock`) SELECT impf.entity_id, $stock_id, impf.qty, impf.is_in_stock FROM {$this->tablePrefix}import_feed impf 
-ON DUPLICATE KEY UPDATE product_id = impf.entity_id, stock_id = $stock_id, qty = impf.qty;");
+ON DUPLICATE KEY UPDATE product_id = impf.entity_id, stock_id = $stock_id, qty = impf.qty, is_in_stock = impf.is_in_stock;");
+            } else {
+                $this->db_magento->query("INSERT INTO {$this->tablePrefix}cataloginventory_stock_item (`product_id`, `stock_id`, `qty`, `is_in_stock`) SELECT impf.entity_id, $stock_id, impf.qty, impf.is_in_stock FROM {$this->tablePrefix}import_feed impf 
+ON DUPLICATE KEY UPDATE product_id = impf.entity_id;");
             }
 
             if ($updateIsInStockFromCsvConf) {
                 $this->db_magento->query("INSERT INTO {$this->tablePrefix}cataloginventory_stock_status (`product_id`, `website_id`, `stock_id`, `qty`, `stock_status`) SELECT impf.entity_id, $websiteId, $stock_id, impf.qty, impf.is_in_stock FROM {$this->tablePrefix}import_feed impf
 ON DUPLICATE KEY UPDATE product_id = impf.entity_id, stock_id = $stock_id, website_id = $websiteId, qty = impf.qty;");
+            } else {
+                $this->db_magento->query("INSERT INTO {$this->tablePrefix}cataloginventory_stock_status (`product_id`, `website_id`, `stock_id`, `qty`, `stock_status`) SELECT impf.entity_id, $websiteId, $stock_id, impf.qty, impf.is_in_stock FROM {$this->tablePrefix}import_feed impf
+ON DUPLICATE KEY UPDATE product_id = impf.entity_id;");
             }
 
             // Creating temp file for categories
@@ -911,28 +919,52 @@ ON DUPLICATE KEY UPDATE product_id = impf.entity_id, stock_id = $stock_id, websi
 
             $this->updateCategoryPath();
 
-            if ($categoriesConf) {
                 // catalog_category_entity_varchar
-                $array_for_varchar = ['unspsc_c' => $unspsc_id, 'category' => $name_id, 'url_key' => $url_key_id];
-                foreach ($array_for_varchar as $attr_varchar => $attr_varchar_id) {
+            $array_for_varchar = ['unspsc_c' => $unspsc_id, 'category' => $name_id, 'url_key' => $url_key_id];
+            foreach ($array_for_varchar as $attr_varchar => $attr_varchar_id) {
 
-                    $this->db_magento->query("INSERT INTO {$this->tablePrefix}catalog_category_entity_varchar (`entity_type_id`, `attribute_id`, `store_id`, `entity_id`, `value`) SELECT $category_entity_type, $attr_varchar_id , tc.store, tc.id, tc.$attr_varchar FROM {$this->tablePrefix}temp_cats tc WHERE tc.id <> 0 ON DUPLICATE KEY UPDATE `value` = tc.$attr_varchar;");
-                    $this->db_magento->query("INSERT INTO {$this->tablePrefix}catalog_category_entity_varchar (`entity_type_id`, `attribute_id`, `store_id`, `entity_id`, `value`) SELECT $category_entity_type, $attr_varchar_id , 0, tc.id, tc.$attr_varchar FROM {$this->tablePrefix}temp_cats tc WHERE store = '$default_store_id' AND tc.id <> 0 ON DUPLICATE KEY UPDATE `value` = tc.$attr_varchar;");
+                $store_def_query_varchar = "INSERT INTO {$this->tablePrefix}catalog_category_entity_varchar (`entity_type_id`, `attribute_id`, `store_id`, `entity_id`, `value`) SELECT $category_entity_type, $attr_varchar_id , tc.store, tc.id, tc.$attr_varchar FROM {$this->tablePrefix}temp_cats tc WHERE tc.id <> 0 ";
+                $store_null_query_varchar = "INSERT INTO {$this->tablePrefix}catalog_category_entity_varchar (`entity_type_id`, `attribute_id`, `store_id`, `entity_id`, `value`) SELECT $category_entity_type, $attr_varchar_id , 0, tc.id, tc.$attr_varchar FROM {$this->tablePrefix}temp_cats tc WHERE store = '$default_store_id' AND tc.id <> 0 ";
+
+                if ($categoriesConf) {
+                    $store_def_query_varchar .= "ON DUPLICATE KEY UPDATE `value` = tc.$attr_varchar;";
+                    $store_null_query_varchar .= "ON DUPLICATE KEY UPDATE `value` = tc.$attr_varchar;";
+
+                } else {
+                    $store_def_query_varchar .= "ON DUPLICATE KEY UPDATE `entity_id` = tc.id;";
+                    $store_null_query_varchar .= "ON DUPLICATE KEY UPDATE `entity_id` = tc.id;";
                 }
 
-                // catalog_category_entity_int
-                $array_for_int = ['is_active' => $categoriesToActiveConf, 'is_anchor' => 1, 'include_in_menu' => 1];
-
-                foreach ($array_for_int as $attr_int => $int) {
-
-                    $select_attribute_int = $this->db_magento->query("SELECT attribute_id FROM `{$this->tablePrefix}eav_attribute` WHERE attribute_code = '$attr_int' AND entity_type_id = $category_entity_type;");
-                    $attribute_int = $select_attribute_int->fetch()['attribute_id'];
-
-                    $this->db_magento->query("INSERT INTO {$this->tablePrefix}catalog_category_entity_int (`entity_type_id`, `attribute_id`, `store_id`, `entity_id`, `value`) SELECT $category_entity_type, $attribute_int , tc.store, tc.id, $int FROM {$this->tablePrefix}temp_cats tc WHERE tc.id <> 0 ON DUPLICATE KEY UPDATE `value` = $int;");
-                    $this->db_magento->query("INSERT INTO {$this->tablePrefix}catalog_category_entity_int (`entity_type_id`, `attribute_id`, `store_id`, `entity_id`, `value`) SELECT $category_entity_type, $attribute_int , 0, tc.id, $int FROM {$this->tablePrefix}temp_cats tc WHERE store = '$default_store_id' AND tc.id <> 0 ON DUPLICATE KEY UPDATE `value` = $int;");
-                }
+                $this->db_magento->query($store_def_query_varchar);
+                $this->db_magento->query($store_null_query_varchar);
             }
 
+            // catalog_category_entity_int
+            if ($categoriesToActiveConf) {
+                $array_for_int = ['is_active' => $categoriesToActiveConf, 'is_anchor' => 1, 'include_in_menu' => 1];
+            } else {
+                $array_for_int = ['is_anchor' => 1, 'include_in_menu' => 1];
+            }
+
+            foreach ($array_for_int as $attr_int => $int) {
+
+                $select_attribute_int = $this->db_magento->query("SELECT attribute_id FROM `{$this->tablePrefix}eav_attribute` WHERE attribute_code = '$attr_int' AND entity_type_id = $category_entity_type;");
+                $attribute_int = $select_attribute_int->fetch()['attribute_id'];
+
+                $store_def_query_int = "INSERT INTO {$this->tablePrefix}catalog_category_entity_int (`entity_type_id`, `attribute_id`, `store_id`, `entity_id`, `value`) SELECT $category_entity_type, $attribute_int , tc.store, tc.id, $int FROM {$this->tablePrefix}temp_cats tc WHERE tc.id <> 0 ";
+                $store_null_query_int = "INSERT INTO {$this->tablePrefix}catalog_category_entity_int (`entity_type_id`, `attribute_id`, `store_id`, `entity_id`, `value`) SELECT $category_entity_type, $attribute_int , 0, tc.id, $int FROM {$this->tablePrefix}temp_cats tc WHERE store = '$default_store_id' AND tc.id <> 0 ";
+
+                if ($categoriesConf && !$categoriesToActiveConf) {
+                    $store_def_query_int .= "ON DUPLICATE KEY UPDATE `value` = $int;";
+                    $store_null_query_int .= "ON DUPLICATE KEY UPDATE `value` = $int;";
+                } else {
+                    $store_def_query_int .= "ON DUPLICATE KEY UPDATE `entity_id` = tc.id;";
+                    $store_null_query_int .= "ON DUPLICATE KEY UPDATE `entity_id` = tc.id;";
+                }
+
+                $this->db_magento->query($store_def_query_int);
+                $this->db_magento->query($store_null_query_int);
+            }
             // loading data to catalog_category_product;
             $this->loadDataToCatalogCategoryProduct();
         }
@@ -1006,7 +1038,7 @@ ON DUPLICATE KEY UPDATE product_id = impf.entity_id, stock_id = $stock_id, websi
                 $ids_for_update_is_active = implode(',', $array_for_updating_is_active);
 
                 if (!empty($ids_for_update_is_active)) {
-                    $this->db_magento->query("UPDATE `{$this->tablePrefix}catalog_category_entity_int` SET `value` = 0 WHERE `attribute_id` = $attribute_is_active_id AND `entity_id` IN ($ids_for_update_is_active);");
+                    //$this->db_magento->query("UPDATE `{$this->tablePrefix}catalog_category_entity_int` SET `value` = 0 WHERE `attribute_id` = $attribute_is_active_id AND `entity_id` IN ($ids_for_update_is_active);");
                 }
             }
         }

@@ -2,7 +2,7 @@
 <config>
     <modules>
         <ICEshop_Iceimport>
-            <version>1.8.0</version>
+            <version>1.8.3</version>
         </ICEshop_Iceimport>
     </modules>
     <admin>
@@ -128,6 +128,7 @@
                 <import_images>1</import_images>
                 <process_image_queue>0</process_image_queue>
                 <update_categories_from_csv>1</update_categories_from_csv>
+                <update_categories_to_product>1</update_categories_to_product>
                 <update_status_from_csv>1</update_status_from_csv>
                 <update_visibility_from_csv>1</update_visibility_from_csv>
                 <update_is_in_stock_from_csv>1</update_is_in_stock_from_csv>
