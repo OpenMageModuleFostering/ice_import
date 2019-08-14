@@ -9,4 +9,9 @@ class Iceshop_Icecatlive_Adminhtml_IceimagesController extends Mage_Adminhtml_Co
             $this->getLayout()->createBlock('iceimport/adminhtml_images_list_grid')->toHtml()
         );
     }
+
+    protected function _isAllowed()
+    {
+        return Mage::getSingleton('admin/session')->isAllowed('system/config/iceimport_information');
+    }
 }

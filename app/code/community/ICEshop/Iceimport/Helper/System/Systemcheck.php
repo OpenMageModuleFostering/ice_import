@@ -195,7 +195,7 @@ class ICEshop_Iceimport_Helper_System_Systemcheck extends Mage_Core_Helper_Abstr
                 'label' => 'Memory Limit',
                 'recommended_value' => '>= 512M',
                 'current_value' => $php['memory_limit'],
-                'result' => ($memoryLimit >= 512),
+                'result' => ($this->checkMemoryLimit($php['memory_limit'], (int)512)),
                 'advice' => array(
                     'label' => $this->__('Maximum amount of memory in bytes that a script is allowed to allocate.'),
                     'link' => 'http://ua2.php.net/manual/en/ini.core.php#ini.memory-limit'
@@ -710,6 +710,15 @@ class ICEshop_Iceimport_Helper_System_Systemcheck extends Mage_Core_Helper_Abstr
             }
         }
 
+        if ($count == 0) {
+            $block = Mage::app()->getLayout()->createBlock('iceimport/adminhtml_notifications')->checkLastFinishedImport();
+            if ($block != false) {
+                $problems['custom_problems']['problem']['content'] = $block;
+                $problems['custom_problems']['problem']['explanation'] = "See additional information in Iceimport Statistics. Check working of magento cron. Otherwise contact with support team at supportdesk@iceshop.nl";
+                $count++;
+            }
+        }
+
         $problems_digest = new Varien_Object();
         $problems_digest->setData('problems', $problems);
         $problems_digest->setData('count', $count);
@@ -777,6 +786,63 @@ class ICEshop_Iceimport_Helper_System_Systemcheck extends Mage_Core_Helper_Abstr
           return $statistic_check;
       } catch (Exception $e){
       }
+    }
+
+    /**
+     * Calculate and compare needed value of memory limit
+     * @param string $memoryLimit
+     * @param integer $compare
+     * @return boolean
+     */
+    protected function checkMemoryLimit($memoryLimit, $compare){
+        $ml = false;
+        if(strripos($memoryLimit, 'G')){
+            $ml = ((int)$memoryLimit)*1024;
+        } else {
+            $ml = (int)$memoryLimit;
+        }
+        if($ml){
+            if($ml>=$compare)
+                return true;
+            else
+                return false;
+        }
+        return false;
+    }
+
+    /**
+     * Calculate time of import one product
+     * @param $count
+     * @param $start
+     * @param $end
+     */
+    public function getModulePerformance($count, $start, $end)
+    {
+        $helper = Mage::helper('iceimport');
+        $delta_time = 0;
+        if ((!empty($count['log_value'])) && (!empty($start['log_value'])) && (!empty($end['log_value']))) {
+            $start_unix = strtotime($start['log_value']);
+            $end_unix = strtotime($end['log_value']);
+            if ($end_unix > $start_unix) {
+                $delta_time = $end_unix - $start_unix;
+            } else {
+                $return = $helper->__('Not finished yet');
+            }
+            if ($delta_time != 0) {
+                $tmp = $count['log_value'];
+                $performance = ($delta_time) / $tmp;
+                $per_minute = round($performance / 60, 0);
+                if ($per_minute == 0) {
+                    $return = round($performance, 2) . $helper->__(' sec. ');
+                } else {
+                    $return = round($performance / 60, 2) . $helper->__(' min. ');;
+                }
+            }
+        } else {
+            $return = $helper->__('Can`t calculate now');
+        }
+
+        return $return;
     }
 
 }

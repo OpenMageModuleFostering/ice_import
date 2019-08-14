@@ -1,20 +1,89 @@
 <?php $_problems = $this->getIceimportProblemsDigest() ?>
 <?php
+$priority = true;
 $is_allowed = false;
 try {
     $is_allowed = $this->isAllowed();
-} catch ( Exception $e ) {
+} catch (Exception $e) {
 }
 ?>
-<?php if ( $is_allowed == true ) : ?>
-    <?php if ( ! empty( $_problems ) && is_array( $_problems ) && count( $_problems ) > 0 ): ?>
+
+<?php
+//first launch after install module
+$fistLaunch = $this->firstLaunch();
+if ($fistLaunch != false && $priority):
+    ?>
+    <?php $priority = false; ?>
+    <div class="notification-global iceimport-warning-notification" id="iceimport-warning-notification-delete-products">
+        <span class="f-right">
+            <a href="<?php print $this->getSettingsPageWithAccepting(); ?>"
+               title="<?php echo $this->helper('iceimport')->__('Open in new window'); ?>"><?php echo $this->helper('iceimport')->__('Go to system settings section'); ?></a>
+        </span>
+        <strong class="label"><?php echo $this->helper('iceimport')->__('Warning'); ?></strong>
+        <?php echo $this->helper('iceimport')->__($fistLaunch); ?>
+    </div>
+<?php endif; ?>
+
+<?php if ($is_allowed == true) : ?>
+    <?php if (!empty($_problems) && is_array($_problems) && count($_problems) > 0 && $priority): ?>
+        <?php $priority = false; ?>
         <div class="notification-global" id="iceimport-warning">
         <span class="f-right">
             <a href="<?php print $this->getManageUrl(); ?>"
-               title="<?php echo $this->helper( 'iceimport' )->__( 'Open in new window' ); ?>"><?php echo $this->helper( 'iceimport' )->__( 'Go to system check section' ); ?></a>
+               title="<?php echo $this->helper('iceimport')->__('Open in new window'); ?>"><?php echo $this->helper('iceimport')->__('Go to system check section'); ?></a>
         </span>
-            <strong class="label"><?php echo $this->helper( 'iceimport' )->__( 'Warning' ); ?></strong>
-            <?php echo $this->helper( 'iceimport' )->__( "The Iceimport extensions doesn't work properly, please go to configuration page and check the problems." ); ?>
+            <strong class="label"><?php echo $this->helper('iceimport')->__('Warning'); ?></strong>
+            <?php echo $this->helper('iceimport')->__("The Iceimport extensions doesn't work properly, please go to configuration page and check the problems."); ?>
         </div>
     <?php endif; ?>
 <?php endif; ?>
+
+<?php
+$mapping = $this->checkSetMapping();
+if (($mapping != false) && $priority):
+    ?>
+    <?php $priority = false; ?>
+    <div class="notification-global iceimport-warning-notification" id="iceimport-warning-notification-delete-products">
+        <span class="f-right">
+            <a href="<?php print $this->getSettingsPage(); ?>"
+               title="<?php echo $this->helper('iceimport')->__('Open in new window'); ?>"><?php echo $this->helper('iceimport')->__('Go to system settings section'); ?></a>
+        </span>
+        <strong class="label"><?php echo $this->helper('iceimport')->__('Warning'); ?></strong>
+        <?php echo $this->helper('iceimport')->__($mapping); ?>
+    </div>
+<?php endif; ?>
+
+<?php
+//warning when we try delete more products that set in config
+$warning = $this->checkWarning();
+if ($warning != false && $priority):
+    ?>
+    <?php $priority = false; ?>
+    <div class="notification-global iceimport-warning-notification" id="iceimport-warning-notification-delete-products">
+        <span class="f-right">
+            <a href="<?php print $this->getSettingsPage(); ?>"
+               title="<?php echo $this->helper('iceimport')->__('Open in new window'); ?>"><?php echo $this->helper('iceimport')->__('Go to system settings section'); ?></a>
+        </span>
+        <strong class="label"><?php echo $this->helper('iceimport')->__('Warning'); ?></strong>
+        <?php echo $this->helper('iceimport')->__($warning); ?>
+    </div>
+<?php endif; ?>
+
+<?php
+$warning = $this->checkLastFinishedImport();
+if ($warning != false && $priority):
+    ?>
+    <?php $priority = false; ?>
+    <div class="notification-global iceimport-warning-notification" id="iceimport-warning-notification">
+        <span class="f-right">
+            <a href="<?php print $this->getManageUrl(); ?>"
+               title="<?php echo $this->helper('iceimport')->__('Open in new window'); ?>"><?php echo $this->helper('iceimport')->__('Go to system check section'); ?></a>
+        </span>
+        <strong class="label"><?php echo $this->helper('iceimport')->__('Warning'); ?></strong>
+        <?php echo $this->helper('iceimport')->__($warning); ?>
+    </div>
+<?php endif; ?>
+
+
+
+

@@ -34,16 +34,35 @@
                             <show_in_store>1</show_in_store>
                         </basic_settings_heading>
                         <basic_settings_note translate="label">
-                            <label><![CDATA[<strong>Caution!</strong>]]></label>
-                            <comment><![CDATA[All the settings in this section are valid and used only for existing products, for new products the value is Yes and it can't be changed]]></comment>
+                            <label><![CDATA[<a id="iceimport_explanation" target="_blank">Explanation</a>]]></label>
+                            <comment><![CDATA[]]></comment>
                             <frontend_type>label</frontend_type>
                             <sort_order>1</sort_order>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
                         </basic_settings_note>
+                        <iceimport_note translate="label">
+                            <label><![CDATA[<strong>Caution!</strong>]]></label>
+                            <comment><![CDATA[All these settings are valid and applicable for products that already exist in the store. For the new products (which has not in the store yet, but presents in the import file) will be applied "Yes" i.e. all attributes, such as MPN, GTIN etc. will be ALWAYS imported for NEW products.]]></comment>
+                            <frontend_type>label</frontend_type>
+                            <sort_order>2</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </iceimport_note>
+                        <iceimport_explanation_hidden translate="label comment">
+                            <label></label>
+                            <comment></comment>
+                            <frontend_type>select</frontend_type>
+                            <source_model>iceimport/system_config_explanations</source_model>
+                            <sort_order>10</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </iceimport_explanation_hidden>
                         <import_product_ean translate="label">
-                            <label>Update EAN</label>
+                            <label>Update GTIN</label>
                             <frontend_type>select</frontend_type>
                             <source_model>iceimport/system_config_yesno</source_model>
                             <sort_order>21</sort_order>
@@ -61,7 +80,7 @@
                             <show_in_store>1</show_in_store>
                         </import_product_mpn>
                         <import_product_brand_name translate="label">
-                            <label>Update brand</label>
+                            <label>Update Brand</label>
                             <frontend_type>select</frontend_type>
                             <source_model>iceimport/system_config_yesno</source_model>
                             <sort_order>23</sort_order>
@@ -97,24 +116,6 @@
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
                         </import_product_description>
-                        <import_product_short_summary_description translate="label">
-                            <label>Update short summary description</label>
-                            <frontend_type>select</frontend_type>
-                            <source_model>iceimport/system_config_yesno</source_model>
-                            <sort_order>27</sort_order>
-                            <show_in_default>1</show_in_default>
-                            <show_in_website>1</show_in_website>
-                            <show_in_store>1</show_in_store>
-                        </import_product_short_summary_description>
-                        <import_product_summary_description translate="label">
-                            <label>Update summary description</label>
-                            <frontend_type>select</frontend_type>
-                            <source_model>iceimport/system_config_yesno</source_model>
-                            <sort_order>28</sort_order>
-                            <show_in_default>1</show_in_default>
-                            <show_in_website>1</show_in_website>
-                            <show_in_store>1</show_in_store>
-                        </import_product_summary_description>
                         <import_prices translate="label">
                             <label>Update prices</label>
                             <frontend_type>select</frontend_type>
@@ -134,7 +135,7 @@
                             <show_in_store>1</show_in_store>
                         </import_stock>
                         <import_product_delivery_eta translate="label">
-                            <label>Update delivery eta</label>
+                            <label>Update Delivery ETA</label>
                             <frontend_type>select</frontend_type>
                             <source_model>iceimport/system_config_yesno</source_model>
                             <sort_order>31</sort_order>
@@ -201,6 +202,105 @@
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
                         </import_images>
+                        <is_reindex_required_import translate="label comment">
+                            <label>Re-index Required</label>
+                            <comment>Choose run re-index all the content after finishing ICEimport or not.</comment>
+                            <frontend_type>select</frontend_type>
+                            <source_model>iceimport/system_config_yesno</source_model>
+                            <sort_order>38</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </is_reindex_required_import>
+                        <iceimport_profile translate="label">
+                            <label><![CDATA[Profile]]></label>
+                            <comment><![CDATA[Import profile]]></comment>
+                            <frontend_type>select</frontend_type>
+                            <source_model>iceimport/system_config_profiles</source_model>
+                            <sort_order>39</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </iceimport_profile>
+                        <cron_settings>
+                            <label>When you want to run cron ?</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>40</sort_order>
+                            <validate>required-entry</validate>
+                            <comment>Use Crontab Format (Eg. "30 7 * * *" in 7:30 AM). Don't forget `Flush Magento Cache` and `Flush Cache Storage` after changes.</comment>
+                            <show_in_default>1</show_in_default>
+                        </cron_settings>
+                        <attributes_mapping translate="label">
+                            <label>Attributes mapping</label>
+                            <frontend_model>adminhtml/system_config_form_field_heading</frontend_model>
+                            <sort_order>50</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </attributes_mapping>
+                        <attribute_mapping_mpn translate="label">
+                            <label>MPN</label>
+                            <comment>Choose the attribute to use for mapping (In older version was used "mpn" attribute).</comment>
+                            <frontend_type>select</frontend_type>
+                            <source_model>iceimport/system_config_fields_attributes</source_model>
+                            <sort_order>51</sort_order>
+                            <validate>required-entry</validate>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </attribute_mapping_mpn>
+                        <attribute_mapping_brand_name translate="label">
+                            <label>Brand</label>
+                            <comment>Choose the attribute to use for mapping (In older version was used "brand" attribute).</comment>
+                            <frontend_type>select</frontend_type>
+                            <source_model>iceimport/system_config_fields_attributes</source_model>
+                            <sort_order>52</sort_order>
+                            <validate>required-entry</validate>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </attribute_mapping_brand_name>
+                        <attribute_mapping_ean translate="label">
+                            <label>GTIN</label>
+                            <comment>Choose the attribute to use for mapping (In older version was used "ean" attribute).</comment>
+                            <frontend_type>select</frontend_type>
+                            <source_model>iceimport/system_config_fields_attributes</source_model>
+                            <sort_order>53</sort_order>
+                            <validate>required-entry</validate>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </attribute_mapping_ean>
+                        <attribute_mapping_delivery_eta translate="label">
+                            <label>Delivery ETA</label>
+                            <comment>Choose the attribute to use for mapping (In older version was used "delivery_eta" attribute).</comment>
+                            <frontend_type>select</frontend_type>
+                            <source_model>iceimport/system_config_fields_attributes</source_model>
+                            <sort_order>54</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </attribute_mapping_delivery_eta>
+                        <websites translate="label">
+                            <label>Websites</label>
+                            <validate>required-entry</validate>
+                            <frontend_type>select</frontend_type>
+                            <source_model>iceimport/system_config_websites</source_model>
+                            <sort_order>55</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </websites>
+                        <stock_inventory translate="label">
+                            <label>Stock Name</label>
+                            <validate>required-entry</validate>
+                            <frontend_type>select</frontend_type>
+                            <source_model>iceimport/system_config_stock</source_model>
+                            <sort_order>56</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </stock_inventory>
                         <refresh_settings_heading translate="label">
                             <label>Import Parameters</label>
                             <frontend_model>adminhtml/system_config_form_field_heading</frontend_model>
@@ -289,12 +389,21 @@
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
                         </default_tax>
+                        <transactions_enabled translate="label">
+                            <label>Transactions enabled</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>iceimport/system_config_yesno</source_model>
+                            <sort_order>145</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </transactions_enabled>
                         <images_queue_processing_only translate="label">
                             <label><![CDATA[ImagesQueueProcessing only]]></label>
                             <comment><![CDATA[Run <strong>ONLY</strong> images queue processing instead of whole actions stack. Setting used <strong>ONLY</strong> while running via Cron.]]></comment>
                             <frontend_type>select</frontend_type>
                             <source_model>iceimport/system_config_yesno</source_model>
-                            <sort_order>145</sort_order>
+                            <sort_order>147</sort_order>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>

@@ -28,7 +28,8 @@ class ICEshop_Iceimport_Block_Adminhtml_Images_List_Grid extends Mage_Adminhtml_
         $collection = Mage::getModel('catalog/product')->getCollection();
         $collection->addAttributeToSort('entity_id', 'DESC');
 
-        $collection->getSelect()->joinLeft( array('pt'=> 'iceshop_iceimport_image_queue'),
+        $prefix = Mage::getConfig()->getTablePrefix();
+        $collection->getSelect()->joinLeft( array('pt'=> $prefix.'iceshop_iceimport_image_queue'),
                 'e.`entity_id` = pt.`entity_id`', array('*'))->where("pt.`is_downloaded`=2")->limit(20, 10);
 
         if($this->checkExistingAttribute('catalog_product', 'sku')){

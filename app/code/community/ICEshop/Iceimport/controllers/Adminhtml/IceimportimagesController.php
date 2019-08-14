@@ -15,4 +15,9 @@ class ICEshop_Iceimport_Adminhtml_IceimportimagesController extends Mage_Adminht
         Mage::app()->getResponse()->setBody($result);
     }
 
+    protected function _isAllowed()
+    {
+        return Mage::getSingleton('admin/session')->isAllowed('system/config/iceimport_information');
+    }
+
 }

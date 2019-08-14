@@ -122,3 +122,36 @@ ul.tabs a.iceshop-info-section:hover span {
 #row_iceshop_about_iceshop_iframe_iceshop_iframe_hidden {
     display: none;
 }
+.iceimport-warning-notification {
+    background-color: #ef672f;
+    background-image: none;
+    border-bottom: none;
+    border-color: #c14800;
+    border-top: none;
+    color: #ffffff;
+    font-weight: bold;
+}
+.iceimport-warning-notification strong {
+    background-color: #31302b;
+    color: #ffffff !important;
+    display: inline-block;
+    font-weight: bold;
+    height: 17px;
+    margin: -5px 10px -5px 0;
+    padding: 5px 10px 5px 10px;
+    text-transform: uppercase;
+}
+
+.iceimport-warning-notification .f-right {
+    background-color: #31302b;
+    display: inline-block;
+    height: 17px;
+    margin: -5px 0 -5px 0;
+    padding: 5px 10px 5px 10px;
+}
+
+.iceimport-warning-notification .f-right a {
+    color: #ffffff;
+    font-weight: bold;
+    text-decoration: none;
+}

@@ -2,7 +2,7 @@
 <config>
     <modules>
         <ICEshop_Iceimport>
-            <version>1.7.15</version>
+            <version>1.7.23</version>
         </ICEshop_Iceimport>
     </modules>
     <admin>
@@ -56,6 +56,10 @@
                     <!-- Override Mage_Catalog_Model_Convert_Adapter_Product -->
                     <convert_parser_csv>ICEshop_Iceimport_Model_Dataflow_Convert_Parser_Csv</convert_parser_csv>
                 </rewrite>
+                <rewrite>
+                    <!-- Override Mage_Dataflow_Model_Convert_Adapter_Io -->
+                    <convert_adapter_io>ICEshop_Iceimport_Model_Dataflow_Convert_Adapter_Io</convert_adapter_io>
+                </rewrite>
             </dataflow>
             <iceimport>
                 <class>ICEshop_Iceimport_Model</class>
@@ -101,7 +105,7 @@
         <jobs>
             <iceshop_iceimport>
                 <schedule>
-                    <cron_expr>30 7 * * *</cron_expr>
+                    <config_path>iceshop_iceimport_importprod_root/importprod/cron_settings</config_path>
                 </schedule>
                 <run>
                     <model>iceimport/observer::load</model>
@@ -121,8 +125,8 @@
                 <import_product_name>1</import_product_name>
                 <import_product_short_description>1</import_product_short_description>
                 <import_product_description>1</import_product_description>
-                <import_product_short_summary_description>1</import_product_short_summary_description>
-                <import_product_summary_description>1</import_product_summary_description>
+                <iceimport_profile>3</iceimport_profile>
+                <transactions_enabled>0</transactions_enabled>
                 <import_prices>1</import_prices>
                 <import_stock>1</import_stock>
                 <import_product_delivery_eta>1</import_product_delivery_eta>
@@ -137,6 +141,8 @@
                 <import_new_products>1</import_new_products>
                 <delete_old_products_tolerance>25</delete_old_products_tolerance>
                 <images_queue_processing_only>0</images_queue_processing_only>
+                <is_reindex_required_import>1</is_reindex_required_import>
+                <cron_settings>30 7 * * *</cron_settings>
             </importprod>
         </iceshop_iceimport_importprod_root>
     </default>

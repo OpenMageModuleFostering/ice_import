@@ -17,10 +17,40 @@ jQuery(document).ready(function ( jQuery ) {
         }
     });
 
+
+    var request_url_explanations = jQuery('#iceshop_iceimport_importprod_root_importprod_iceimport_explanation_hidden');
+    if(request_url_explanations.length>0){
+        var url_explanations = Base64.decode(request_url_explanations.find('option')[0].innerHTML);
+        var iceimport_explanation_length = jQuery(('#iceimport_explanation')).length;
+        if(iceimport_explanation_length>0){
+            jQuery(('#iceimport_explanation')).attr('href',url_explanations)
+        }
+        jQuery('#iceshop_iceimport_importprod_root_importprod_iceimport_explanation_hidden').parents('tr').remove();
+    }
+
     refreshIceimportSystemCheck();
 
     buildIceshopInfo();
+
+    cronQueue();
+
+    jQuery(document).on('change', '#iceshop_iceimport_importprod_root_importprod_import_images', function () {
+        cronQueue();
+    });
 });
+
+function cronQueue() {
+    if (jQuery('#iceshop_iceimport_importprod_root_importprod_import_images').length > 0) {
+        var selected = jQuery('#iceshop_iceimport_importprod_root_importprod_import_images').val();
+
+        if (selected == '1') {
+            jQuery('#row_iceshop_iceimport_importprod_root_importprod_images_queue_processing_only').show();
+        }
+        if (selected == '0') {
+            jQuery('#row_iceshop_iceimport_importprod_root_importprod_images_queue_processing_only').hide();
+        }
+    }
+}
 
 function buildIceshopInfo()
 {

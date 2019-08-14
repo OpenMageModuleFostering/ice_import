@@ -25,27 +25,67 @@ class ICEshop_Iceimport_Model_Dataflow_Convert_Parser_Csv extends Mage_Dataflow_
         $default_attr_set_id = Mage::getModel('catalog/product')->getResource()->getEntityType()->getDefaultAttributeSetId();
         $attributes = Mage::getModel('catalog/product_attribute_api')->items($default_attr_set_id);
 
-        $req_attributes = array('brand_name', 'ean', 'mpn', 'is_iceimport');
+        $attribute_mapping_mpn        = Mage::getStoreConfig('iceshop_iceimport_importprod_root/importprod/attribute_mapping_mpn');
+        $attribute_mapping_brand_name = Mage::getStoreConfig('iceshop_iceimport_importprod_root/importprod/attribute_mapping_brand_name');
+        $attribute_mapping_ean        = Mage::getStoreConfig('iceshop_iceimport_importprod_root/importprod/attribute_mapping_ean');
+        $entityAttributeModel         = Mage::getResourceModel('eav/entity_attribute');
+
+        //stock_name and websites check
+        $stock_name = Mage::getStoreConfig('iceshop_iceimport_importprod_root/importprod/stock_inventory');
+        $websites = Mage::getStoreConfig('iceshop_iceimport_importprod_root/importprod/websites');
+
         $not_found_attr = array();
-        foreach ($req_attributes as $req_attribute) {
-            foreach ($attributes as $_attribute) {
-                if ($_attribute['code'] == $req_attribute) {
-                    unset($not_found_attr[$req_attribute]);
-                    break;
-                } else {
-                    $not_found_attr[$req_attribute] = $req_attribute;
-                }
+
+        if (!$entityAttributeModel->getIdByCode('catalog_product',$attribute_mapping_mpn)) {
+            $not_found_attr['mapping']['mpn'] = 'mpn';
+        }
+        if (!$entityAttributeModel->getIdByCode('catalog_product',$attribute_mapping_brand_name)) {
+            $not_found_attr['mapping']['brand_name'] = 'brand name';
+        }
+        if (!$entityAttributeModel->getIdByCode('catalog_product',$attribute_mapping_ean)) {
+            $not_found_attr['mapping']['ean'] = 'ean';
+        }
+
+        if (empty($websites)) {
+            $not_found_attr['not_set']['websites'] = 'Websites';
+        }
+        if (empty($stock_name)) {
+            $not_found_attr['not_set']['stock_name'] = 'Stock name';
+        }
+
+
+
+        foreach ($attributes as $_attribute) {
+            if ($_attribute['code'] == 'is_iceimport') {
+                unset($not_found_attr['attribute']['is_iceimport']);
+                break;
+            } else {
+                $not_found_attr['attribute']['is_iceimport'] = 'is iceimport';
             }
         }
-        if (!empty($not_found_attr)) {
+
+        if (!empty($not_found_attr['attribute'])) {
             echo '
                 <li style="background-color:#FDD" id="error-0">
 	                <img id="error-0_img" src="' . Mage::getBaseUrl('web') . '/skin/adminhtml/default/default/images/error_msg_icon.gif" class="v-middle" style="margin-right:5px">
-		            <span id="error-0_status" class="text">Not found attributes: ' . implode(", ", $not_found_attr) . ' please check you default attribute set.</span>
+		            <span id="error-0_status" class="text">Not found attributes: ' . implode(", ", $not_found_attr['attribute']) . ' please check your default attribute set.</span>
+                </li>';
+            exit;
+        } elseif (!empty($not_found_attr['mapping'])) {
+            echo '
+                <li style="background-color:#FDD" id="error-0">
+	                <img id="error-0_img" src="' . Mage::getBaseUrl('web') . '/skin/adminhtml/default/default/images/error_msg_icon.gif" class="v-middle" style="margin-right:5px">
+		            <span id="error-0_status" class="text">Attributes not set: ' . implode(', ', $not_found_attr['mapping']) . ' please check your attributes mapping.</span>
+                </li>';
+            exit;
+        } elseif (!empty($not_found_attr['not_set'])) {
+            echo '
+                <li style="background-color:#FDD" id="error-0">
+	                <img id="error-0_img" src="' . Mage::getBaseUrl('web') . '/skin/adminhtml/default/default/images/error_msg_icon.gif" class="v-middle" style="margin-right:5px">
+		            <span id="error-0_status" class="text">Attributes not set: ' . implode(', ', $not_found_attr['not_set']) . ' please check your attributes values in ICEImport settings.</span>
                 </li>';
             exit;
         }
-
         // fixed for multibyte characters
         setlocale(LC_ALL, Mage::app()->getLocale()->getLocaleCode() . '.UTF-8');
 
@@ -115,6 +155,12 @@ class ICEshop_Iceimport_Model_Dataflow_Convert_Parser_Csv extends Mage_Dataflow_
             $countRows++;
             $i = 0;
             foreach ($fieldNames as $field) {
+
+                $field == 'mpn' ? $field = Mage::getStoreConfig('iceshop_iceimport_importprod_root/importprod/attribute_mapping_mpn') : '';
+                $field == 'brand_name' ? $field = Mage::getStoreConfig('iceshop_iceimport_importprod_root/importprod/attribute_mapping_brand_name') : '';
+                $field == 'ean' ? $field = Mage::getStoreConfig('iceshop_iceimport_importprod_root/importprod/attribute_mapping_ean') : '';
+                $field == 'delivery_eta' ? $field = Mage::getStoreConfig('iceshop_iceimport_importprod_root/importprod/attribute_mapping_delivery_eta') : '';
+
                 $itemData[$currentRow][$field] = isset($csvData[$i]) ? $csvData[$i] : null;
                 $i++;
             }
@@ -164,8 +210,8 @@ class ICEshop_Iceimport_Model_Dataflow_Convert_Parser_Csv extends Mage_Dataflow_
 
 
     public function clearIceimportIds(){
-      $db_res = Mage::getSingleton('core/resource')->getConnection('core_write');
-      $tablePrefix = '';
+        $db_res = Mage::getSingleton('core/resource')->getConnection('core_write');
+        $tablePrefix = '';
         $tPrefix = (array)Mage::getConfig()->getTablePrefix();
         if (!empty($tPrefix)) {
             $tablePrefix = $tPrefix[0];
@@ -178,16 +224,16 @@ class ICEshop_Iceimport_Model_Dataflow_Convert_Parser_Csv extends Mage_Dataflow_
      * Update path to children category/root
      */
     public function updateCatalogCategoryChildren(){
-      try{
-          $db_res = Mage::getSingleton('core/resource')->getConnection('core_write');
-          $tablePrefix = '';
-          $tPrefix = (array)Mage::getConfig()->getTablePrefix();
-          if (!empty($tPrefix)) {
-              $tablePrefix = $tPrefix[0];
-          }
-          $db_res->query('UPDATE `'.$tablePrefix.'catalog_category_entity` SET children_count = (SELECT COUNT(*) FROM (SELECT * FROM `'.$tablePrefix.'catalog_category_entity`) AS table2 WHERE path LIKE CONCAT(`'.$tablePrefix.'catalog_category_entity`.path,"/%"));');
-      } catch (Exception $e){
-      }
+        try{
+            $db_res = Mage::getSingleton('core/resource')->getConnection('core_write');
+            $tablePrefix = '';
+            $tPrefix = (array)Mage::getConfig()->getTablePrefix();
+            if (!empty($tPrefix)) {
+                $tablePrefix = $tPrefix[0];
+            }
+            $db_res->query('UPDATE `'.$tablePrefix.'catalog_category_entity` SET children_count = (SELECT COUNT(*) FROM (SELECT * FROM `'.$tablePrefix.'catalog_category_entity`) AS table2 WHERE path LIKE CONCAT(`'.$tablePrefix.'catalog_category_entity`.path,"/%"));');
+        } catch (Exception $e){
+        }
     }
 
 }
