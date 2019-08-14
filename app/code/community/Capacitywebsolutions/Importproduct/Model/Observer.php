@@ -1,5 +1,4 @@
 <?php
-/*m@rk*/
 class Capacitywebsolutions_Importproduct_Model_Observer
 {
   
@@ -13,15 +12,7 @@ class Capacitywebsolutions_Importproduct_Model_Observer
    * @access publc
    */
   public function load() {
-    
-   /* 
-    // test load
-    $con = mysql_connect('localhost', 'test', 'test');
-    $db = mysql_select_db('catch');
-    $query = mysql_query("INSERT INTO detect (event, time) VALUES ('load called', NOW())");
-    */
-    
-    
+
     $profileId = 3;
     $logFileName= 'test.log';
     $recordCount = 0;
@@ -44,15 +35,19 @@ class Capacitywebsolutions_Importproduct_Model_Observer
     $profile->run();
     
     $batchModel = Mage::getSingleton('dataflow/batch');
+
     if ($batchModel->getId()) {
       if ($batchModel->getAdapter()) {
-        $batchId = $batchModel->getId(); 
+        $batchId = $batchModel->getId();
         $batchImportModel = $batchModel->getBatchImportModel();
         $importIds = $batchImportModel->getIdCollection();
         
         $batchModel = Mage::getModel('dataflow/batch')->load($batchId);
+
         $adapter = Mage::getModel($batchModel->getAdapter());
+
         foreach ($importIds as $importId) {
+
           $recordCount++;
           try{
             $batchImportModel->load($importId);
@@ -76,6 +71,27 @@ class Capacitywebsolutions_Importproduct_Model_Observer
         
         }
 
+        // delete old products
+        $db_res = Mage::getSingleton('core/resource')->getConnection('core_write');
+        $tablePrefix = '';
+        $tPrefix    = (array)Mage::getConfig()->getTablePrefix();
+        if (!empty($tPrefix)) {
+           $tablePrefix = $tPrefix[0];
+        }
+
+        try{
+          $db_res->query("SELECT @is_iceimport_id := `attribute_id` FROM " . $tablePrefix . "eav_attribute WHERE attribute_code = 'is_iceimport'");
+          $db_res->query("DELETE cpe FROM " . $tablePrefix . "catalog_product_entity AS cpe
+              JOIN " . $tablePrefix . "catalog_product_entity_varchar AS cpev ON cpe.entity_id = cpev.entity_id AND cpev.value = 1 AND cpev.attribute_id = @is_iceimport_id
+              LEFT JOIN iceimport_imported_product_ids AS iip ON cpe.entity_id = iip.product_id
+              WHERE iip.product_id IS NULL");
+          $db_res->query('DELETE FROM iceimport_imported_product_ids');
+
+        } catch (Exception $e) {
+          throw new Exception($e->getMessage());
+        }
+
+
         // download & set product images 
         $queueList = $adapter->getImageQueue();
         if (count($queueList) > 0) {
@@ -84,13 +100,10 @@ class Capacitywebsolutions_Importproduct_Model_Observer
             $queueId      = $queue['queue_id'];
             $productId    = $queue['entity_id'];
             $imageUrl     = $queue['image_url'];
-            // TODO remove hardcode
-            $imageUrl     = 'http://magento17.batavi.org/media/download.jpg';
 
             $preImageName = explode('/', $imageUrl);
             $imageName    = array_pop($preImageName);
             if (file_exists($mediaDir . DS . $imageName)) {
-              // TODO remove rand()
               $imageName = rand() .'_'. time() . $imageName;
             }
 
@@ -110,6 +123,58 @@ class Capacitywebsolutions_Importproduct_Model_Observer
             }
           }
         }
+        // sort  category in abc
+
+        $catCollection = Mage::getModel('catalog/category')
+         ->getCollection()
+         ->addAttributeToSort('name', 'ASC');
+        $position =1;
+        foreach($catCollection as $category) {
+          $catSource = Mage::getModel('catalog/category')->load($category->getId());
+          $catSource->setData('position', $position);
+          $catSource->save();
+          $query = "SELECT COUNT(*) FROM `" . $this->_tablePrefix . "catalog_category_product` WHERE category_id = :cat_id ";
+            $cat_products =  $db_res->fetchRow($query,array(
+                ':cat_id'=> $category->getId()
+            ));
+
+            if ($cat_products['COUNT(*)'] == 0) {
+                $query = "SELECT `entity_id` FROM `" . $this->_tablePrefix . "catalog_category_entity` WHERE parent_id = :cat_id";
+                $child_cat = $db_res->fetchAll($query,array(
+                    ':cat_id'=> $category->getId()
+                ));
+                $cat_prod = 0;
+
+                if (isset($child_cat) && count($child_cat) > 0) {
+
+                    foreach ($child_cat as $cat) {
+                        $query = "SELECT COUNT(*) FROM `" . $this->_tablePrefix . "catalog_category_product` WHERE category_id = :cat_id ";
+                        $cat_products =  $db_res->fetchRow($query,array(
+                            ':cat_id'=> $cat['entity_id']
+                        ));
+
+                        if ($cat_products['COUNT(*)'] != 0) {
+                            $cat_prod = 1;
+                        }
+
+                    }
+
+                    if ($cat_prod == 0) {
+                        $db_res->query("UPDATE `" . $this->_tablePrefix . "catalog_category_entity_int`
+                                            SET `value` = 0 WHERE `attribute_id` = @category_active_id AND entity_id = :cat_id",array(
+                            ':cat_id'=> $category->getId()
+                        ));
+                    }
+                } else {
+                    $db_res->query("UPDATE `" . $this->_tablePrefix . "catalog_category_entity_int`
+                                           SET `value` = 0 WHERE `attribute_id` = @category_active_id AND entity_id = :cat_id",array(
+                        ':cat_id'=> $category->getId()
+                    ));
+                }
+            }
+          $position++;
+        }
+
 
         $processes = Mage::getSingleton('index/indexer')->getProcessesCollection();
         $processes->walk('reindexAll');
@@ -120,7 +185,8 @@ class Capacitywebsolutions_Importproduct_Model_Observer
         
       }
     }
-    
+
+    unset($db_res);
     echo 'Import Completed';
     Mage::log("Import Completed",null,$logFileName);    
     

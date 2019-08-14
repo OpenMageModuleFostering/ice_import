@@ -6,6 +6,24 @@
         </Capacitywebsolutions_Importproduct>
     </modules>
     <global>
+       <events>
+                <controller_action_predispatch_adminhtml_profile_batchfinish>
+                    <observers>
+                        <Capacitywebsolutions_Importproduct>
+                            <class>Capacitywebsolutions_Importproduct/Observer</class>
+                            <method>sortCategory</method>
+                        </Capacitywebsolutions_Importproduct>
+                    </observers>
+                </controller_action_predispatch_adminhtml_profile_batchfinish>
+                <controller_action_postdispatch_adminhtml_profile_batchFinish>
+                    <observers>
+                        <Capacitywebsolutions_Importproduct>
+                            <class>Capacitywebsolutions_Importproduct/Observer</class>
+                            <method>sortCategory</method>
+                        </Capacitywebsolutions_Importproduct>
+                    </observers>
+                </controller_action_postdispatch_adminhtml_profile_batchFinish>
+      </events>
       <models>
           <catalog>
               <rewrite>
@@ -37,8 +55,9 @@
                 <use>core_read</use>
               </connection>
             </importproduct_setup_read>
-        </resources>        
+        </resources>
     </global>
+
     <adminhtml>
       <acl>
         <resources>

@@ -23,18 +23,40 @@ class Capacitywebsolutions_Importproduct_Model_Convert_Adapter_Product extends M
   }
 
   public function saveRow(array $importData) {
-
+    
     // separate import data to eav & static
     $sortedProductData   = $this->_mapAttributes($importData);
     $productData         = $sortedProductData['productData'];
     $iceimportAttributes = $sortedProductData['iceimportAttributes'];
     $failedAttributes    = $sortedProductData['failedAttributes'];
+    
+    //Init session values to count total products and determine the last call of saveRow method
+    $session = Mage::getSingleton("core/session");
+    $import_total = $session->getData("import_total");
+    $counter =  $session->getData("counter");
 
-    if (count($failedAttributes) > 0) {
-      echo 'Warning! Field(s) ' . implode(', ' , $failedAttributes) . ' not defined in store! Import continue. ';
+    if (!isset($counter)) {
+      $session->setData("counter",1);
+      $counter =  $session->getData("counter");
     }
-
-    // set website id
+  
+    if (!isset($import_total)) {
+      $batchId = Mage::getSingleton('core/app')->getRequest()->getPost('batch_id', 0);
+      $batchModel = Mage::getModel('dataflow/batch')->load($batchId);
+      $batchImportModel = $batchModel->getBatchImportModel();
+      $importIds = $batchImportModel->getIdCollection();
+      $import_total = count($importIds);
+      $session->setData("import_total",(int)$import_total);
+    } else if(isset($counter) && isset($import_total)) {
+        if($counter < $import_total) {
+          $session->setData("counter",(int)++$counter);
+        }
+    }
+    
+    // mark product ice_import generic
+    $productData['varchar']['is_iceimport'] =1;
+ 
+   // set website id
     if (empty($iceimportAttributes['websites'])) {
       $message = Mage::helper('catalog')->__('Skip import row, required field "%s" not defined', 'website');
       Mage::throwException($message);
@@ -95,7 +117,7 @@ class Capacitywebsolutions_Importproduct_Model_Convert_Adapter_Product extends M
       Mage::throwException($message);      
     }
     $unspscPath = $iceimportAttributes['unspsc_path'];
-  
+    
     // set in / out of stock
     $isInStock = 0;
     if (!empty($iceimportAttributes['is_in_stock'])) {
@@ -139,10 +161,9 @@ class Capacitywebsolutions_Importproduct_Model_Convert_Adapter_Product extends M
     $productData['int']['visibility'] = $visibilityValue;
 
     // set product image
-    // TODO change 'icecat_url' to 'image' before production
     $productImage = '';
-    if (!empty($iceimportAttributes['icecat_url'])) {
-      $productImage = $iceimportAttributes['icecat_url'];
+    if (!empty($iceimportAttributes['image'])) {
+      $productImage = $iceimportAttributes['image'];
     }
 
     // init general attributes query
@@ -157,7 +178,7 @@ class Capacitywebsolutions_Importproduct_Model_Convert_Adapter_Product extends M
         stock_name = 'Default';
       SELECT @attribute_set_id         := `attribute_set_id` FROM `" . $this->_tablePrefix . "eav_attribute_set`
                                           WHERE attribute_set_name = :attribute_set AND entity_type_id = 
-                                          (SELECT entity_type_id FROM `" . $this->_tablePrefix . "eav_entity_type` WHERE entity_type_code = 'catalog_product');
+                                          @product_entity_type_id;
 
       SELECT @price_id                 := `attribute_id` FROM `" . $this->_tablePrefix . "eav_attribute` WHERE
         `attribute_code` = 'price' AND entity_type_id = @product_entity_type_id;
@@ -170,7 +191,11 @@ class Capacitywebsolutions_Importproduct_Model_Convert_Adapter_Product extends M
         `attribute_code` = 'is_active' AND entity_type_id = @category_entity_type_id;
       SELECT @include_nav_bar_id       := `attribute_id` FROM `" . $this->_tablePrefix . "eav_attribute` WHERE
         `attribute_code` = 'include_in_menu'   AND entity_type_id = @category_entity_type_id;
+      SELECT @category_is_anchor_id       := `attribute_id` FROM `" . $this->_tablePrefix . "eav_attribute` WHERE
+        `attribute_code` = 'is_anchor'   AND entity_type_id = @category_entity_type_id;
     ";
+
+
     $this->_connRes->query($initAttributes, array(':attribute_set' => $iceimportAttributes['attribute_set']));
 
     $prodIdFetch = $this->_connRes->fetchRow("SELECT entity_id FROM `" . $this->_tablePrefix . "catalog_product_entity` WHERE sku = :sku limit 1" , array(
@@ -183,12 +208,17 @@ class Capacitywebsolutions_Importproduct_Model_Convert_Adapter_Product extends M
       if('import_price_stock' == Mage::getStoreConfig('importprod_root/importprod/import_only_prices_stock',
         $storeId)) {
         $this->_corePriceStock($websiteId, $productId, $price, $qty, $sku, $isInStock);
+        $query = $this->_connRes->query('INSERT INTO iceimport_imported_product_ids (product_id, product_sku) VALUES (:prod_id, :sku)',array(':prod_id' => $productId,':sku'     => $sku));
         return true;
       }
     } else {
       $productId = null;
     }
-
+    $defaulttaxConf = (int)Mage::getStoreConfig('importprod_root/importprod/default_tax',$storeId); 
+    
+    if( !empty($defaulttaxConf) ) {
+      $productData['int']['tax_class_id'] = $defaulttaxConf;
+    }
     // get category id
     $categoriesToActiveConf = Mage::getStoreConfig('importprod_root/importprod/category_active', 
                                 $storeId);  
@@ -204,6 +234,7 @@ class Capacitywebsolutions_Importproduct_Model_Convert_Adapter_Product extends M
 
     // if new product then ovewrride product id from null to id
     $productId = $this->_coreSave($productData, $productId, $storeId, $sku, $categoryId);
+
     // add product image to queue
     if (Mage::getStoreConfig('importprod_root/importprod/import_images')) {
       $this->_addImageToQueue($productId, $productImage);
@@ -211,17 +242,60 @@ class Capacitywebsolutions_Importproduct_Model_Convert_Adapter_Product extends M
 
     // add price & stock
     $this->_corePriceStock($websiteId, $productId, $price, $qty, $sku, $isInStock);
+    
+    $query = $this->_connRes->query('INSERT INTO iceimport_imported_product_ids (product_id, product_sku) VALUES (:prod_id, :sku)',array(':prod_id' => $productId,':sku'     => $sku));
+    
+    // Check if this is last imported product  
+    //  Do category sort and set categories without products to inactive
+    if (isset($counter) && isset($import_total) && ($counter==$import_total)) {
+      $catCollection = Mage::getModel('catalog/category')
+                            ->getCollection()
+                            ->addAttributeToSort('name', 'ASC');
+      $position = 1;
+            
+      foreach ($catCollection as $category) {
+            
+        $query = $this->_connRes->query("UPDATE `". $this->_tablePrefix . "catalog_category_entity` SET position = :position WHERE entity_id = :cat_id ", array(
+           ':position'=>$position, 
+           ':cat_id'=> $category->getId()
+        ));
+     
+        $query = "SELECT COUNT(*) FROM `" . $this->_tablePrefix . "catalog_category_product` WHERE category_id = :cat_id ";
+        $cat_products =  $this->_connRes->fetchRow($query,array(
+           ':cat_id'=> $category->getId()
+        ));
 
+        if ($cat_products['COUNT(*)'] == 0) { 
+          $query = "SELECT `entity_id` FROM `" . $this->_tablePrefix . "catalog_category_entity` WHERE parent_id = :cat_id";
+          $child_cat = $this->_connRes->fetchAll($query,array(
+              ':cat_id'=> $category->getId()
+          ));
+
+          if (isset($child_cat) && count($child_cat) > 0) {
+            //Count child categories products and set them to inactive if they have no
+            $this->CountChildProd($child_cat);
+          } else {
+            $this->_connRes->query("UPDATE `" . $this->_tablePrefix . "catalog_category_entity_int`
+                                    SET `value` = 0 WHERE `attribute_id` = @category_active_id AND entity_id = :cat_id",array(
+                                    ':cat_id'=> $category->getId()
+            ));
+          }
+        }
+        $position++;
+      }
+       
+      $session->unsetData('import_total');
+      $session->unsetData('counter');
+    }
+    
     return true;
-
   }
 
   protected function _coreSave(array $entityData, $productId = null, $storeId = 0, $sku, $categoryId) {
-
     if ($productId === null) {
       // add product to store
-      $coreSaveProduct = "INSERT INTO `" . $this->_tablePrefix . "catalog_product_entity` (`entity_type_id`, `attribute_set_id`, `type_id`, `sku`) VALUES
-          (@product_entity_type_id, @attribute_set_id, 'simple', :sku);
+      $coreSaveProduct = "INSERT INTO `" . $this->_tablePrefix . "catalog_product_entity` (`entity_type_id`, `attribute_set_id`, `type_id`, `sku`, `created_at`) VALUES
+          (@product_entity_type_id, @attribute_set_id, 'simple', :sku, NOW());
           SELECT @product_id := LAST_INSERT_ID();
       ";
       $this->_connRes->query($coreSaveProduct, array(':sku' => $sku));
@@ -280,12 +354,11 @@ class Capacitywebsolutions_Importproduct_Model_Convert_Adapter_Product extends M
     ";
 
     try{
-      $this->_connRes->query($coreSaveSQL, $bindArray);
+      $query = $this->_connRes->query($coreSaveSQL, $bindArray);
     } catch(Exception $e) {
       echo $e->getMessage();
     }
     return $productId;
-
   }
 
   protected function _corePriceStock($website =0, $productId =false, $price =0.00, $qty =0.00, $sku =false, $isInStock =0) {
@@ -368,65 +441,70 @@ class Capacitywebsolutions_Importproduct_Model_Convert_Adapter_Product extends M
     // check if product exists
     $categoryId = $this->_getCategoryIdByUnspsc($unspsc);
     if (!empty($categoryId)) {
-      // check category name to current store
-      $categoryBindArray = array(
-        ':store_id'      => $storeId,
-        'category_id'    => $categoryId
-      ); 
-
-      $nameCheckerFetch  = $this->_connRes->fetchRow("SELECT value_id FROM `" . $this->_tablePrefix . "catalog_category_entity_varchar` WHERE 
-        store_id = :store_id AND entity_id = :category_id AND attribute_id = @category_name_id
-      ", $categoryBindArray);
-      $nameChecker       = $nameCheckerFetch['value_id'];
-      if (!$nameChecker) {
-         // add category name to current store
-	 $categoryBindArray['category_name'] = array_pop(explode('/', $categories));
-	 $this->_connRes->query("
-	   INSERT INTO `" . $this->_tablePrefix . "catalog_category_entity_varchar` (`entity_type_id`, `attribute_id`, `store_id`, `entity_id`, `value`) VALUES
-	   (@category_entity_type_id, @category_name_id, :store_id, :category_id, :category_name)
-	 ", $categoryBindArray);
+      // merge categories by unspsc
+      $categoryMergedArray = $this->_categoryMapper($categories, $unspscPath);
+      foreach ($categoryMergedArray as $category) {      
+        $categoryName   = $category['name'];
+        $categoryUnspsc = $category['unspsc'];
+        $categoryTreeId     = $this->_getCategoryIdByUnspsc($categoryUnspsc);
+        // check category name to current store
+        $categoryBindArray = array(
+          ':store_id'       => $storeId,
+          ':category_id'    => $categoryTreeId
+        ); 
+        $nameCheckerFetch  = $this->_connRes->fetchRow("SELECT value_id FROM `" . $this->_tablePrefix . "catalog_category_entity_varchar` WHERE  
+          store_id = :store_id AND entity_id = :category_id AND attribute_id = @category_name_id
+        ", $categoryBindArray);
+        $nameChecker       = $nameCheckerFetch['value_id'];
+        if (!$nameChecker) {
+          // add category name to current store
+          $categoryBindArray[':category_name'] = $categoryName;
+          if (!empty($categoryBindArray[':category_id'])){
+            $this->_connRes->query("
+              INSERT INTO `" . $this->_tablePrefix . "catalog_category_entity_varchar` (`entity_type_id`, `attribute_id`, `store_id`, `entity_id`, `value`) VALUES
+              (@category_entity_type_id, @category_name_id, :store_id, :category_id, :category_name)
+            ", $categoryBindArray);
+          }
+        }
       }
-
-      if ( 1 == $categoryActive) {
-        $unspscArray = explode('/', $unspscPath);
-        if ($unspscArray) {
+      if (1 == $categoryActive) {
+        // get current path of category
+        $categoryPath = $this->_connRes->fetchRow("SELECT path FROM `" . $this->_tablePrefix . "catalog_category_entity` WHERE entity_id = :entity_id",
+          array(':entity_id' => $categoryId));
+        $categoryPathArray = explode('/', $categoryPath['path']);
+        if ($categoryPathArray) {
           $activeSetter = "INSERT INTO `" . $this->_tablePrefix . "catalog_category_entity_int` (`entity_type_id`, `attribute_id`, `store_id`, `entity_id`, `value`) VALUES ";
         }
-        foreach($unspscArray as $cat_unspsc) {
-          $categoryParrentId = $this->_getCategoryIdByUnspsc($cat_unspsc);
-          $activeSetter .= "(@category_entity_type_id, @category_active_id, :store_id, " . $categoryParrentId . ", 1), 
-                            (@category_entity_type_id, @category_active_id, 0, " . $categoryParrentId . ", 1), ";
+
+        $falseCounter = 0;
+        foreach($categoryPathArray as $categoryId) {
+          $category = Mage::getModel('catalog/category')->load($categoryId);
+          $cid = $category->getId();
+          if (!empty($cid)) {
+            if (!empty($categoryId)) {
+              $activeSetter .= "(@category_entity_type_id, @category_active_id, :store_id, " . $categoryId . ", 1),
+                                (@category_entity_type_id, @category_active_id, 0, " . $categoryId . ", 1), ";
+            } else {
+              $falseCounter++;
+            }
+          } else {
+            $falseCounter++;
+          }
         }
         $activeSetter = substr($activeSetter, 0, -2);
         $activeSetter .= "
           ON DUPLICATE KEY UPDATE
           `value` = 1
         ";
-        $this->_connRes->query($activeSetter, array(':store_id' => $storeId));
+        if ($falseCounter < count($categoryPathArray)) {
+           $this->_connRes->query($activeSetter, array(':store_id' => $storeId));
+        }
       }
       return $categoryId;
     } else {
+
       // merge unspcs to current name in unspcs & name path's
-      $nameArray   = explode('/', $categories);
-      $unspscArray = explode('/', $unspscPath);
-
-      if (count($nameArray) != count($unspscArray)) {
-        $message = Mage::helper('catalog')->__('Skip import row, @categories data is invaled');
-        Mage::throwException($message);
-      }
-
-      $categoryMergedArray = array(
-        array(
-          'unspsc' => 'default_root',
-          'name'   => 'Default category'
-        )
-      );
-
-      for($i = 0; $i < count($unspscArray); $i++) {
-        $categoryMergedArray[] = array('name'   =>$nameArray[$i],
-                                       'unspsc' =>$unspscArray[$i]);
-      }
-
+      $categoryMergedArray = $this->_categoryMapper($categories, $unspscPath);
       // get max created parrent category
       $categoryCreateArray = array();
       for ($i = count($categoryMergedArray) -1; $i >= 0; $i--) {
@@ -441,6 +519,30 @@ class Capacitywebsolutions_Importproduct_Model_Convert_Adapter_Product extends M
       }
       return $categoryId;
     }
+  }
+
+  protected function _categoryMapper($categoryPath, $unspscPath) {
+    $nameArray   = explode('/', $categoryPath);
+    $unspscArray = explode('/', $unspscPath);
+
+    if (count($nameArray) != count($unspscArray)) {
+      $message = Mage::helper('catalog')->__('Skip import row, @categories data is invaled');
+      Mage::throwException($message);
+    }
+
+    $categoryMergedArray = array(
+      array(
+        'unspsc' => 'default_root',
+        'name'   => 'Default category'
+      )
+    );
+
+    for($i = 0; $i < count($unspscArray); $i++) {
+      $categoryMergedArray[] = array('name'   =>$nameArray[$i],
+                                     'unspsc' =>$unspscArray[$i]);
+    } 
+
+    return $categoryMergedArray;
   }
 
   protected function _getCategoryIdByUnspsc($unspcs) {
@@ -486,6 +588,8 @@ class Capacitywebsolutions_Importproduct_Model_Convert_Adapter_Product extends M
       VALUES
         (@category_entity_type_id, @category_active_id, 0,      @catId, :category_active),
         (@category_entity_type_id, @category_active_id, :store, @catId, :category_active),
+        (@category_entity_type_id, @category_is_anchor_id, 0, @catId, 1),
+        (@category_entity_type_id, @category_is_anchor_id, :store, @catId, 1),
         (@category_entity_type_id, @include_nav_bar_id, 0,      @catId, 1),
         (@category_entity_type_id, @include_nav_bar_id, :store, @catId, 1);
 
@@ -507,6 +611,7 @@ class Capacitywebsolutions_Importproduct_Model_Convert_Adapter_Product extends M
     ));
 
     $categoryIdFetch = $this->_connRes->fetchRow('SELECT @catId AS category_id');
+
     return $categoryIdFetch['category_id'];
   }
 
@@ -516,7 +621,6 @@ class Capacitywebsolutions_Importproduct_Model_Convert_Adapter_Product extends M
     $iceAttributes = array();
     foreach ($importData as $attribute => $value) {
       // map iceimport attributes 
-      // TODO change 'icecat_url' to 'image' before production
       if ($attribute == 'type'          || 
           $attribute == 'sku'           ||
           $attribute == 'attribute_set' ||
@@ -529,14 +633,13 @@ class Capacitywebsolutions_Importproduct_Model_Convert_Adapter_Product extends M
           $attribute == 'store'         ||
           $attribute == 'websites'      ||
           $attribute == 'is_in_stock'   ||
-          $attribute == 'icecat_url'         ||
+          $attribute == 'image'         ||
           $attribute == 'unspsc_path') {
 
         $iceAttributes[$attribute] = $value;
         unset($importData[$attribute]);
 
       }
-      // TODO change  'image' to 'icecat_url' to skip liste  before production
       // skip some attributes
       if ($attribute == 'supplier_product_code' ||
           $attribute == 'supplier'              ||
@@ -548,7 +651,7 @@ class Capacitywebsolutions_Importproduct_Model_Convert_Adapter_Product extends M
           $attribute == 'icecat_category_id'    ||
           $attribute == 'icecat_vendor_id'      ||
           $attribute == 'icecat_quality'        ||
-          $attribute == 'image'            ||
+          $attribute == 'icecat_url'            ||
           $attribute == 'icecat_thumbnail_img'  ||
           $attribute == 'icecat_low_res_img'    ||
           $attribute == 'icecat_high_res_img'   ||
@@ -558,7 +661,6 @@ class Capacitywebsolutions_Importproduct_Model_Convert_Adapter_Product extends M
           $attribute == 'tax4'                  ||
           $attribute == 'min_quantity'          ||
           $attribute == 'loms'                  ||
-          $attribute == 'tax_rate'              ||
           $attribute == 'image_label'           ||
           $attribute == 'links_title'           ||
           $attribute == 'small_image_label'     ||
@@ -756,9 +858,30 @@ class Capacitywebsolutions_Importproduct_Model_Convert_Adapter_Product extends M
       )
     );
   }
+  
+  // Count child categories products and set them inactive if they have no
+  public function CountChildProd($child_cat) {  
+    foreach ($child_cat as $cat) {
+      $query = "SELECT `entity_id` FROM `" . $this->_tablePrefix . "catalog_category_entity` WHERE parent_id = :cat_id";
+      $child_cat = $this->_connRes->fetchAll($query,array(
+         ':cat_id'=> $cat['entity_id']
+      ));
 
-  public function testId() {
-    return  $this->_connRes->fetchRow('SELECT * from prefcatalog_category_product order by product_id desc limit 1');
+      $query = "SELECT COUNT(*) FROM `" . $this->_tablePrefix . "catalog_category_product` WHERE category_id = :cat_id ";
+      $cat_products =  $this->_connRes->fetchRow($query,array(
+         ':cat_id'=> $cat['entity_id']
+      ));
+
+      if ($cat_products['COUNT(*)'] == 0 && empty($child_cat)) {
+        $this->_connRes->query("UPDATE `" . $this->_tablePrefix . "catalog_category_entity_int`
+                               SET `value` = 0 WHERE `attribute_id` = @category_active_id AND entity_id = :cat_id",array(
+           ':cat_id'=> $cat['entity_id']
+        ));
+      } else if (!empty($child_cat)) {
+        $this->CountChildProd($child_cat);
+      }
+    } 
   }
+    
 }
 

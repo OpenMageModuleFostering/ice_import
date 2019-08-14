@@ -1,18 +1,24 @@
 <?xml version="1.0"?>
 <package>
     <name>ice_import</name>
-    <version>1.2.0</version>
+    <version>1.3.0</version>
     <stability>stable</stability>
     <license uri="http://opensource.org/licenses/osl-3.0.php">OSL v.3</license>
     <channel>community</channel>
     <extends/>
     <summary>Import categories &amp; products</summary>
     <description>This extension can use to import products with categories, multiple images and custom options from CSV file.</description>
-    <notes>- Import any field from CSV to any text field</notes>
+    <notes>- Add default tax attribute.&#xD; - Add support multisites stores category mapping.&#xD;
+- Removed skipped field warnings&#xD;
+- Fix some bugs...etc.&#xD;
+- Delete old not relevant products&#xD;
+- Set is anchor category property to yes&#xD;
+- Sort imported categories by name&#xD;
+- Added method to set categories, subcategories without products to inactive </notes>
     <authors><author><name>Iceshop</name><user>Iceshop</user><email>support@iceshop.nl</email></author></authors>
-    <date>2012-10-02</date>
-    <time>21:31:49</time>
-    <contents><target name="magecommunity"><dir name="Capacitywebsolutions"><dir name="Importproduct"><dir name="etc"><file name="config.xml" hash="c59424e1f6806af1c50f322a84c262a9"/><file name="system.xml" hash="0f76e79143ac01dc948a1c4c5315c072"/></dir><dir name="Model"><dir name="Convert"><dir name="Adapter"><file name="Product.php" hash="85445d781feb85e4774aa9b0ccebae87"/></dir></dir><dir name="System"><dir name="Config"><file name="Categoryactivity.php" hash="2ddc7588dd1d038661f0017c8ff397a6"/><file name="Imageimport.php" hash="8b29e7bbf67d82a06f04ad9a63df26a0"/><file name="Lockproddetails.php" hash="32a823c0c914348585702536732fed3e"/></dir></dir><file name="Observer.php" hash="b9b2af7be5f23962ea234a58829d58ec"/></dir><dir name="sql"><dir name="importproduct_setup"><file name="mysql4-install-0.1.0.php" hash="8fe53e47d9d3a767dd843ab9a5cd3206"/></dir></dir></dir></dir></target><target name="mageetc"><dir name="modules"><file name="Capacitywebsolutions_Importproduct.xml" hash="02cb79dd6ed129ce3aa5305e1bfb4bbf"/></dir></target></contents>
+    <date>2013-03-29</date>
+    <time>10:55:42</time>
+    <contents><target name="magecommunity"><dir name="Capacitywebsolutions"><dir name="Importproduct"><dir name="etc"><file name="config.xml" hash="c59424e1f6806af1c50f322a84c262a9"/><file name="system.xml" hash="0f76e79143ac01dc948a1c4c5315c072"/></dir><dir name="Model"><dir name="Convert"><dir name="Adapter"><file name="Product.php" hash="b14683db8316b3bfa88a663abc42e7df"/></dir></dir><dir name="System"><dir name="Config"><file name="Categoryactivity.php" hash="2ddc7588dd1d038661f0017c8ff397a6"/><file name="Imageimport.php" hash="8b29e7bbf67d82a06f04ad9a63df26a0"/><file name="Lockproddetails.php" hash="32a823c0c914348585702536732fed3e"/><file name="Defaulttax.php" hash="32a823c0c914348585702536732fed3e"/></dir></dir><file name="Observer.php" hash="cf7944e708df4fca8fbb218f8828b305"/></dir><dir name="sql"><dir name="importproduct_setup"><file name="mysql4-install-0.1.0.php" hash="61102e9caee6f92ebba4230d391b922d"/></dir></dir></dir></dir></target><target name="mageetc"><dir name="modules"><file name="Capacitywebsolutions_Importproduct.xml" hash="02cb79dd6ed129ce3aa5305e1bfb4bbf"/></dir></target></contents>
     <compatible/>
     <dependencies><required><php><min>5.2.0</min><max>6.0.0</max></php></required></dependencies>
 </package>
