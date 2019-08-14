@@ -1,7 +1,14 @@
 <?php
-
+require_once 'IceimagesController.php';
 class ICEshop_Iceimport_Adminhtml_IceimportController extends Mage_Adminhtml_Controller_Action
 {
+    public $_gridTables = NULL;
+
+    public function _construct() {
+        $this->_gridTables = new Iceshop_Icecatlive_Adminhtml_IceimagesController($this->getRequest(), $this->getResponse());
+        parent::_construct();
+    }
+
 
     /**
      * indexAction
@@ -35,20 +42,91 @@ class ICEshop_Iceimport_Adminhtml_IceimportController extends Mage_Adminhtml_Con
                             <?php
                             $i = 1;
                             foreach ($problems as $problem_section_name => $problem_section) {
-                                foreach ($problem_section as $problem_name => $problem_value) {
-                                    print '<tr>';
-                                    print '<td class="label">';
-                                    print '<label class="problem-digest">' . $helper->__('Problem') . " " . $i . ':</label>';
-                                    print '</td>';
-                                    print '<td class="value">';
-                                    if ($problem_section_name != 'iceimport_log') {
-                                        print '<span class="requirement-passed">"' . $problem_value['label'] . '"</span> ' . $helper->__('current value is') . ' <span class="requirement-failed">"' . $problem_value['current_value'] . '"</span> ' . $helper->__('and recommended value is') . ' <span class="requirement-passed">"' . (!empty($problem_value['recommended_value']) ? $problem_value['recommended_value'] : '') . '"</span>. ' . $helper->__(' Check this parameter in') . ' <a class="section-toggler-trigger-iceimport requirement-passed" data-href="#' . $problem_section_name . '-section" href="#' . $problem_section_name . '-section">' . ucfirst($problem_section_name) . '</a> ' . $helper->__('section') . '.';
-                                    } else {
-                                        print '<span class="requirement-passed">"' . $problem_value['label'] . '"</span> <span class="requirement-failed">"' . $problem_value['current_value'] . '"</span>. ' . $helper->__(' Check ') . ' <a class="section-toggler-trigger-iceimport requirement-passed" data-href="#' . $problem_section_name . '-section" href="#' . $problem_section_name . '-section">' . ucfirst($problem_section_name) . '</a> ' . $helper->__('section') . '.';
+                                if($problem_section_name == 'custom_problems'){
+                                    foreach ($problem_section as $problem_name => $problem_value) {
+                                        print '<tr>';
+                                        print '<td class="label">';
+                                        print '<label class="problem-digest">' . $helper->__('Problem') . ':</label>';
+                                        print '</td>';
+                                        print '<td class="value">';
+                                        print '<span class="requirement-failed">' . $problem_value['content'] . '</span> ';
+                                        print '</td>';
+                                        print '</tr>';
+
+                                        print '<tr>';
+                                        print '<td class="label">';
+                                        print '<label class="problem-digest">' . $helper->__('Explanation') .':</label>';
+                                        print '</td>';
+                                        print '<td class="value">';
+                                        print '<span class="requirement-failed">' . $problem_value['explanation'] . '</span> ';
+                                        print '</td>';
+                                        print '</tr>';
+
+                                        $i++;
                                     }
-                                    print '</td>';
-                                    print '</tr>';
-                                    $i++;
+                                }
+                                elseif($problem_section_name !='iceimport_delete_product'){
+
+                                    foreach ($problem_section as $problem_name => $problem_value) {
+
+                                        print '<tr>';
+                                        print '<td class="label">';
+                                        print '<label class="problem-digest">' . $helper->__('Problem') . " " . $i . ':</label>';
+                                        print '</td>';
+                                        print '<td class="value">';
+                                        if ($problem_section_name != 'iceimport_log') {
+                                            print '<span class="requirement-passed">"' . $problem_value['label'] . '"</span> ' . $helper->__('current value is') . ' <span class="requirement-failed">"' . $problem_value['current_value'] . '"</span> ' . $helper->__('and recommended value is') . ' <span class="requirement-passed">"' . (!empty($problem_value['recommended_value']) ? $problem_value['recommended_value'] : '') . '"</span>. ' . $helper->__(' Check this parameter in') . ' <a class="section-toggler-trigger-iceimport requirement-passed" data-href="#' . $problem_section_name . '-section" href="#' . $problem_section_name . '-section">' . ucfirst($problem_section_name) . '</a> ' . $helper->__('section') . '.';
+                                        } else {
+                                            print '<span class="requirement-passed">"' . $problem_value['label'] . '"</span> <span class="requirement-failed">"' . $problem_value['current_value'] . '"</span>. ' . $helper->__(' Check ') . ' <a class="section-toggler-trigger-iceimport requirement-passed" data-href="#' . $problem_section_name . '-section" href="#' . $problem_section_name . '-section">' . ucfirst($problem_section_name) . '</a> ' . $helper->__('section') . '.';
+                                        }
+                                        print '</td>';
+                                        if($problem_section_name != 'requirement' && $problem_section_name != 'rewrite'){
+                                            print '<td class="value">';
+                                            print '<span class="f-right">'
+                                                . '<a href="' . Mage::helper("adminhtml")->getUrl("adminhtml/iceimport/checkwarning/", array('warning'=>$problem_name,'section_problems' => $problem_section_name)) . '">'
+                                                . Mage::helper( 'iceimport' )->__( 'Acknowledge' ) . '</a></span>';
+                                            print '</td>';
+                                        } elseif ($problem_section_name == 'requirement') {
+                                            print '<td class="value">';
+                                            print '<span class="f-right">'
+                                                . '<a href="' . Mage::helper("adminhtml")->getUrl("adminhtml/iceimport/checkwarning/", array('warning'=>$problem_value['label'],'section_problems' => $problem_section_name)) . '">'
+                                                . Mage::helper( 'iceimport' )->__( 'Acknowledge' ) . '</a></span>';
+                                            print '</td>';
+                                        } elseif ($problem_section_name == 'rewrite') {
+                                            print '<td class="value">';
+                                            print '<span class="f-right">'
+                                                . '<a href="' . Mage::helper("adminhtml")->getUrl("adminhtml/iceimport/checkwarning/", array('warning'=>$problem_name,'section_problems' => $problem_section_name)) . '">'
+                                                . Mage::helper( 'iceimport' )->__( 'Acknowledge' ) . '</a></span>';
+                                            print '</td>';
+                                        } elseif ($problem_section_name == 'iceimport_log') {
+                                            print '<td class="value">';
+                                            print '<span class="f-right">'
+                                                . '<a href="' . Mage::helper("adminhtml")->getUrl("adminhtml/iceimport/checkwarning/", array('warning'=>$problem_name,'section_problems' => $problem_section_name)) . '">'
+                                                . Mage::helper( 'iceimport' )->__( 'Acknowledge' ) . '</a></span>';
+                                            print '</td>';
+                                        }
+                                        print '</tr>';
+                                        $i++;
+                                    }
+                                } else {
+                                    foreach ($problem_section as $problem_name => $problem_value) {
+                                        print '<tr>';
+                                        print '<td class="label">';
+                                        print '<label class="problem-digest">' . $helper->__('Problem') . " " . $i . ':</label>';
+                                        print '</td>';
+                                        print '<td class="value">';
+                                        print '<span class="requirement-failed">' . $problem_value['label'] . ': </span>  <span class="requirement">' . $problem_value['current_value'] . '</span> ';
+                                        print '</td>';
+
+                                        print '<td class="value">';
+                                        print '<span class="f-right">'
+                                            . '<a href="' . Mage::helper("adminhtml")->getUrl("adminhtml/iceimport/checkwarning/", array('warning'=>$problem_name, 'section_problems' => $problem_section_name)) . '">'
+                                            . Mage::helper( 'iceimport' )->__( 'Acknowledge' ) .'</a></span>';
+                                        print '</td>';
+
+                                        print '</tr>';
+                                        $i++;
+                                    }
                                 }
                             }
                             ?>
@@ -61,24 +139,30 @@ class ICEshop_Iceimport_Adminhtml_IceimportController extends Mage_Adminhtml_Con
                                        target="_blank">&raquo;<?php print $helper->__('Click to generate'); ?></a>
                                     <p class="note"><?php print $helper->__("Use this report for more info on found problems or send it to Iceshop B.V. to help analyzing the problem to speed up solution of any issues."); ?></p>
                                 </td>
+                                <td></td>
                             </tr>
                         </table>
                     </div>
                 </div>
             </div>
-        <?php
+            <?php
         endif;
         //Check module
         $DB_checker = Mage::helper('iceimport/db');
         $data_flows = $DB_checker->getRowCountByField($DB_checker->getTableName('dataflow_batch_import'), 'batch_id', false, ' ORDER BY 1 DESC LIMIT 50');
         $currently_imported_products = $DB_checker->getRowsCount($DB_checker->_prefix . "iceshop_iceimport_imported_product_ids");
         $table_name = $DB_checker->getTableName('dataflow_profile_history');
+
+        $try_delete_product = $DB_checker->getLogEntryByKey('error_try_delete_product');
+        $delete_product_percentage = $DB_checker->getLogEntryByKey('error_try_delete_product_percentage');
+
         $last_started_by_cron = $DB_checker->getLogEntryByKey('iceimport_import_started');
         $last_finished_by_cron = $DB_checker->getLogEntryByKey('iceimport_import_ended');
         $import_status_cron = $DB_checker->getLogEntryByKey('iceimport_import_status_cron');
         $last_deleted_products_count = $DB_checker->getLogEntryByKey('iceimport_count_delete_product');
         $last_imported_products_count = $DB_checker->getLogEntryByKey('iceimport_count_imported_products');
         $last_run = $DB_checker->readQuery("SELECT `performed_at` FROM {$table_name} WHERE `profile_id` = 3 ORDER BY `performed_at` DESC LIMIT 1");
+        $import_filename = $DB_checker->getLogEntryByKey('import_filename')
         ?>
         <span id="iceimport_statistics-section"></span>
         <div class="entry-edit">
@@ -117,15 +201,6 @@ class ICEshop_Iceimport_Adminhtml_IceimportController extends Mage_Adminhtml_Con
                                 <?php if (!empty($import_status_cron['log_value'])) echo $import_status_cron['log_value']; else print $helper->__("Never started till now"); ?>
                             </td>
                         </tr>
-                        <?php if (!empty($currently_imported_products) && ($import_status_cron['log_value'] == 'Running' || $import_status_cron['log_value'] == 'Failed')) { ?>
-                            <tr>
-                                <td class="label"><label><?php print $helper->__("Currently products imported"); ?>
-                                        :</label></td>
-                                <td class="value">
-                                    <?php echo $currently_imported_products . ' from ' . $data_flows[0]['row_count']; ?>
-                                </td>
-                            </tr>
-                        <?php } ?>
                         <tr>
                             <td colspan="2" class="label">
                                 <label class="iceimport-label-uppercase iceimport-label-bold">
@@ -140,6 +215,7 @@ class ICEshop_Iceimport_Adminhtml_IceimportController extends Mage_Adminhtml_Con
                                 <?php if (!empty($last_imported_products_count['log_value'])) echo $last_imported_products_count['log_value']; else echo "0"; ?>
                             </td>
                         </tr>
+
                         <tr>
                             <td class="label">
                                 <label><?php print $helper->__("Removed out of date products last time "); ?>:</label>
@@ -148,6 +224,31 @@ class ICEshop_Iceimport_Adminhtml_IceimportController extends Mage_Adminhtml_Con
                                 <?php if (!empty($last_deleted_products_count['log_value'])) echo $last_deleted_products_count['log_value']; else echo "0"; ?>
                             </td>
                         </tr>
+                        <?php if(!empty($delete_product_percentage) && !empty($try_delete_product)) { ?>
+                            <tr>
+                                <td class="label">
+                                    <label><?php print $helper->__("Attempt to remove a large amount of products "); ?>:</label>
+                                </td>
+                                <td class="value">
+                                    <?php echo $try_delete_product['log_value'].$delete_product_percentage['log_value']; ?>
+                                </td>
+                            </tr>
+                        <?php } ?>
+                        <tr>
+                            <td class="label"><label><?php print $helper->__("Import file name"); ?>
+                                    :</label></td>
+                            <td class="value">
+                                <?php echo (!empty($import_filename['log_value']))?$import_filename['log_value']:$helper->__("Never started till now"); ?>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="label"><label><?php print $helper->__("Time of import one product"); ?>
+                                    :</label></td>
+                            <td class="value">
+                                <?php echo $checker->getModulePerformance($last_imported_products_count, $last_started_by_cron, $last_finished_by_cron); ?>
+                            </td>
+                        </tr>
+
                     </table>
                 </div>
             </div>
@@ -225,32 +326,32 @@ class ICEshop_Iceimport_Adminhtml_IceimportController extends Mage_Adminhtml_Con
                             <tr>
                                 <td>
                                     <span
-                                        class="iceimport-label-bold iceimport-label-rewrite"><?php print $helper->__('Path'); ?>
+                                            class="iceimport-label-bold iceimport-label-rewrite"><?php print $helper->__('Path'); ?>
                                         :</span>
                                     <span><?php echo $rewrite['path']; ?></span>
                                     <br/>
                                     <span
-                                        class="iceimport-label-bold iceimport-label-rewrite"><?php print $helper->__('Rewrite Class'); ?>
+                                            class="iceimport-label-bold iceimport-label-rewrite"><?php print $helper->__('Rewrite Class'); ?>
                                         :</span>
                                     <span><?php echo $rewrite['rewrite_class']; ?></span>
                                     <br/>
                                     <span
-                                        class="iceimport-label-bold iceimport-label-rewrite"><?php print $helper->__('Active Class'); ?>
+                                            class="iceimport-label-bold iceimport-label-rewrite"><?php print $helper->__('Active Class'); ?>
                                         :</span>
                                     <span><?php echo $rewrite['active_class']; ?></span>
                                     <br/>
                                     <span
-                                        class="iceimport-label-bold iceimport-label-rewrite"><?php print $helper->__('Status'); ?>
+                                            class="iceimport-label-bold iceimport-label-rewrite"><?php print $helper->__('Status'); ?>
                                         :</span>
                                     <span
-                                        class="<?php echo $checker->renderRequirementValue($rewrite['status']); ?>">
+                                            class="<?php echo $checker->renderRequirementValue($rewrite['status']); ?>">
                                                 <?php echo $checker->renderStatusField($rewrite['status']); ?>
                                             </span>
                                     <br/>
                                     <br/>
                                 </td>
                             </tr>
-                        <?php
+                            <?php
                         }
                         ?>
                         </tbody>
@@ -281,7 +382,7 @@ class ICEshop_Iceimport_Adminhtml_IceimportController extends Mage_Adminhtml_Con
                             <tr>
                                 <td class="label col1">
                                     <label><span
-                                            class="iceimport-pad-label"><?php echo $requirement['label']; ?></span><?php print $checker->renderAdvice($requirement); ?>
+                                                class="iceimport-pad-label"><?php echo $requirement['label']; ?></span><?php print $checker->renderAdvice($requirement); ?>
                                         :</label>
                                 </td>
                                 <td class="value col2 <?php echo $checker->renderRequirementValue($requirement['result']) ?>">
@@ -584,6 +685,63 @@ class ICEshop_Iceimport_Adminhtml_IceimportController extends Mage_Adminhtml_Con
                 </div>
             </div>
         </div>
+        <?php  //Image Statistics  ?>
+        <span id="iceimport_image-statistics-section"></span>
+        <div class="entry-edit">
+            <div class="entry-edit-head collapseable">
+                <a href="#" class="section-toggler-iceimport">Images Statistics</a>
+            </div>
+
+            <div class="fieldset iceimport-hidden">
+                <div class="hor-scroll">
+                    <table class="form-list" cellspacing="0" cellpadding="0">
+                        <?php
+                        $image_statistics = $checker->getImagesStatistics();
+                        print '<tbody>';
+                        if(!empty($image_statistics)){
+                            foreach ($image_statistics as $statistic){
+                                if($statistic['type'] == 'total_error_download' && $statistic['value'] > 0){
+                                    $update_button = $this->getLayout()->createBlock('iceimport/adminhtml_system_config_form_updatebutton');
+                                    print '<tr>';
+                                    print "<td class=\"label\"><label>{$statistic['label']}</label></td>";
+                                    print "<td class=\"label\"><label>{$statistic['value']}</label></td>";
+                                    print "<td class=\"label\">{$update_button->getButtonHtml()}</td>";
+                                    print '</tr>';
+                                } else if($statistic['type'] == 'total_waiting_download' && $statistic['value'] > 0){
+                                    $button = $this->getLayout()->createBlock('iceimport/adminhtml_system_config_form_button');
+                                    print '<tr>';
+                                    print "<td class=\"label\"><label>{$statistic['label']}</label></td>";
+                                    print "<td class=\"label\"><label>{$statistic['value']}</label></td>";
+                                    print "<td class=\"label\">{$button->getButtonHtml()}</td>";
+                                    print '</tr>';
+                                } else {
+                                    if(!empty($statistic['label']) || !empty($statistic['value'])){
+                                        print '<tr>';
+                                        print "<td class=\"label\"><label>{$statistic['label']}</label></td>";
+                                        print "<td class=\"label\"><label>{$statistic['value']}</label></td>";
+                                        print "<td></td>";
+                                        print '</tr>';
+                                    }
+                                }
+                            }
+                        }
+                        print '</tbody>';
+                        ?>
+                    </table>
+                    <div id="gridActionClener" class="hor-scroll">
+                        <?php
+                        if(!empty($image_statistics)){
+                            if(!empty( $image_statistics['total_error_download']['value'])&&$image_statistics['total_error_download']['value']>0){
+                                $exportall_button = $this->getLayout()->createBlock('iceimport/adminhtml_system_config_form_exportall');
+                                echo $this->_gridTables->getGridTable().$exportall_button->getButtonHtml();
+
+                            }
+                        }
+                        ?>
+                    </div>
+                </div>
+            </div>
+        </div>
         <style>
             .requirement-passed {
                 color: green;
@@ -593,6 +751,97 @@ class ICEshop_Iceimport_Adminhtml_IceimportController extends Mage_Adminhtml_Con
                 color: red;
             }
         </style>
+        <script type="text/javascript">
+
+
+            function import_prod_images(import_run, update){
+                $('loading_mask_loader').setStyle({
+                    width: '430px',
+                    marginLeft: '-235px',
+                    top: '25%'
+                });
+                $('loading-mask').setStyle({
+                    display: 'inline',
+                    opacity: '0.90'
+                });
+                $$('#loading_mask_loader > img')[0].setStyle({
+                    'display': 'inline'
+                });
+                var str = $('loading_mask_loader').innerHTML;
+                str = str.replace('<br>Please wait...', '');
+                $('loading_mask_loader').innerHTML = str;
+
+                new Ajax.Request('<?php echo Mage::helper("adminhtml")->getUrl("adminhtml/iceimportimages/check/"); ?>', {
+                    method:     'get',
+                    parameters: {import_run: import_run, update_images:update},
+                    onSuccess: function(data){
+                        var import_info = JSON.parse(data.responseText);
+                        var images_error_text = '';
+                        var images_error = import_info.images_error;
+                        if(images_error){
+                            images_error_text = '<p> Import images error: ' + import_info.images_error_text + '</p>';
+                        }
+                        var iceimport_count_images = '<p> Found images not imported: '+import_info.count_images+'</p>';
+                        var iceimport_current_images_import = '<p> Current images import: '+import_info.current_images_import+'</p>';
+                        if(import_info.done != 1){
+                            if($('loading_mask_loader').select('#iceimport-images-response').size() == 0){
+                                $('loading_mask_loader').insert({bottom: '<div id="iceimport-images-response" style="text-align: left">'
+                                +iceimport_count_images
+                                +iceimport_current_images_import
+                                +images_error_text
+                                +'</div>'});
+                            }else{
+                                $('iceimport-images-response').replace('<div id="iceimport-images-response" style="text-align: left">'
+                                    +iceimport_count_images
+                                    +iceimport_current_images_import
+                                    +images_error_text
+                                    +'</div>');
+                            }
+                            import_prod_images(0,update);
+                        }else{
+                            if($('loading_mask_loader').select('#iceimport-images-response').size() == 0){
+                                $('loading_mask_loader').insert({bottom: '<div id="iceimport-images-response" style="text-align: left">'
+                                +iceimport_count_images
+                                +iceimport_current_images_import
+                                +images_error_text
+                                +'</div>'
+                                +'<button id="iceimport_images_button_finish" onclick="javascript:hide_progress_popup(); return false;" title="Finish import" type="button" class="scalable " style=""><span><span><span>Finish import</span></span></span></button>'});
+                            }else{
+                                $('iceimport-images-response').replace('<div id="iceimport-images-response" style="text-align: left">'
+                                    +iceimport_count_images
+                                    +iceimport_current_images_import
+                                    +images_error_text
+                                    +'</div>'
+                                    +'<button id="iceimport_images_button_finish" onclick="javascript:hide_progress_popup(); return false;" title="Finish import" type="button" class="scalable " style=""><span><span><span>Finish import</span></span></span></button>');
+                            }
+                            $$('#loading_mask_loader > img')[0].setStyle({
+                                'display': 'none'
+                            });
+                            var str = $('loading_mask_loader').innerHTML;
+                            str = str.replace('<br>Please wait...', '');
+                            $('loading_mask_loader').innerHTML = str;
+                        }
+                    },
+                    onComplete: function(){
+                        $('loading_mask').setStyle({
+                            display: 'none'
+                        });
+                    },
+                    onFailure: function() {
+                        import_prod_images(1,update);
+                    }
+                });
+            }
+
+            function hide_progress_popup(){
+                document.getElementById("iceimport_images_button_finish").remove();
+                document.getElementById('iceimport-images-response').innerHTML = '';
+                $('loading-mask').setStyle({
+                    display: 'none'
+                });
+            }
+
+        </script>
         <?php
         $system_check_content = ob_get_contents();
         ob_end_clean();
@@ -885,4 +1134,341 @@ class ICEshop_Iceimport_Adminhtml_IceimportController extends Mage_Adminhtml_Con
         print str_pad('', 100, '=') . "\n";
         //========================================
     }
+
+
+    /**
+     * Method for export to csv file
+     */
+    public function exportIceimportimagesCsvAction()
+    {
+        $fileName = 'notimport_images.csv';
+        $grid = $this->getLayout()->createBlock('iceimport/adminhtml_images_list_grid');
+        $grid->setDefaultLimit($grid->getCountImagesNotImport());
+        $this->_prepareDownloadResponse($fileName, $grid->getCsvFile());
+    }
+
+    /**
+     * Method for export to excel  file
+     */
+    public function exportIceimportimagesExcelAction() {
+        $fileName = 'notimport_images.xml';
+        $grid = $this->getLayout()->createBlock('iceimport/adminhtml_images_list_grid');
+        $grid->setDefaultLimit($grid->getCountImagesNotImport());
+        $this->_prepareDownloadResponse($fileName, $grid->getExcelFile($fileName));
+    }
+
+    /**
+     * Images grid for AJAX request
+     */
+    public function gridAction() {
+        $exportall_button = $this->getLayout()->createBlock('iceimport/adminhtml_system_config_form_exportall');
+        $this->_gridTables->getGridTable().$exportall_button->getButtonHtml();
+    }
+
+    /**
+     * Method for export to csv file
+     */
+    public function exportIceimportimagesCsvAllAction()
+    {
+        $fileName = 'notimport_images.csv';
+        $grid = $this->getLayout()->createBlock('iceimport/adminhtml_images_list_grid');
+        $grid->setDefaultLimit($grid->getCountImagesNotImport());
+        $this->_prepareDownloadResponse($fileName, $grid->getCsvFile());
+    }
+
+    /**
+     * Add to log skip notifications
+     */
+    public function checkwarningAction() {
+        $DB_logger = Mage::helper('iceimport/db');
+        $skip_data = $DB_logger->getLogEntryByKey('iceimport_skip_problems_digest');
+
+        $warning = $this->getRequest()->getParam('warning');
+        $section_problems = $this->getRequest()->getParam('section_problems');
+        if(empty($skip_data['log_value'])){
+            $skip_data = array();
+            $skip_data[$section_problems][] = $warning;
+            $skip_data = json_encode($skip_data);
+            $DB_logger->insertLogEntry('iceimport_skip_problems_digest', $skip_data);
+        } else {
+            $skip_data = (array)json_decode($skip_data['log_value']);
+            if(!empty($skip_data[$section_problems])){
+                if(!in_array($warning, $skip_data[$section_problems], true)){
+                    $skip_data[$section_problems][] = $warning;
+                    $skip_data = json_encode($skip_data);
+                    $DB_logger->insertLogEntry('iceimport_skip_problems_digest', $skip_data);
+                }
+            } else {
+                $skip_data[$section_problems][] = $warning;
+                $skip_data = json_encode($skip_data);
+                $DB_logger->insertLogEntry('iceimport_skip_problems_digest', $skip_data);
+            }
+        }
+
+        $this->_redirectUrl(Mage::helper("adminhtml")->getUrl("*/system_config/edit", array('section' => 'iceimport_information')));
+    }
+
+    protected function _isAllowed()
+    {
+        return Mage::getSingleton('admin/session')->isAllowed('system/config/iceimport_information');
+    }
+
+
+    /**
+     * Show explanation for import setting
+     * @return string;
+     */
+    public function explanationsAction(){
+        $content = '
+        <table class="explanation_table" style="border: solid; padding: 0px;">
+            <tbody>
+            <tr>
+                <th><strong>Setting`s name</strong></th>
+                <th><strong>Description</strong></th>
+                <th>Default value</th>
+                <th>Note</th>
+            </tr>
+            <tr>
+                <td colspan="3"><strong>Content Settings</strong></td>
+                <td>&nbsp;</td>
+            </tr>
+            <tr>
+                <td>Update GTIN</td>
+                <td>Update attribute if set "Yes"</td>
+                <td style="text-align: center;">Yes</td>
+                <td>&nbsp;</td>
+            </tr>
+            <tr>
+                <td colspan="1">Update&nbsp;MPN</td>
+                <td colspan="1">Update attribute if set "Yes"</td>
+                <td style="text-align: center;" colspan="1">Yes</td>
+                <td colspan="1">&nbsp;</td>
+            </tr>
+            <tr>
+                <td colspan="1">Update&nbsp;Brand</td>
+                <td colspan="1">Update attribute if set "Yes"</td>
+                <td style="text-align: center;" colspan="1">Yes</td>
+                <td colspan="1">&nbsp;</td>
+            </tr>
+            <tr>
+                <td colspan="1">Update&nbsp;name</td>
+                <td colspan="1">Update attribute if set "Yes"</td>
+                <td style="text-align: center;" colspan="1">Yes</td>
+                <td colspan="1">&nbsp;</td>
+            </tr>
+            <tr>
+                <td colspan="1">Update&nbsp;short description</td>
+                <td colspan="1">Update attribute if set "Yes"</td>
+                <td style="text-align: center;" colspan="1">Yes</td>
+                <td colspan="1">&nbsp;</td>
+            </tr>
+            <tr>
+                <td colspan="1">Update description</td>
+                <td colspan="1">Update attribute if set "Yes"</td>
+                <td style="text-align: center;" colspan="1">Yes</td>
+                <td colspan="1">&nbsp;</td>
+            </tr>
+            <tr>
+                <td colspan="1">Update prices</td>
+                <td colspan="1">Update attribute if set "Yes"</td>
+                <td style="text-align: center;" colspan="1">&nbsp;Yes</td>
+                <td colspan="1">&nbsp;</td>
+            </tr>
+            <tr>
+                <td colspan="1">Update stock</td>
+                <td colspan="1">Update attribute if set "Yes"</td>
+                <td style="text-align: center;" colspan="1">&nbsp;Yes</td>
+                <td colspan="1">&nbsp;</td>
+            </tr>
+            <tr>
+                <td colspan="1">Update Delivery ETA</td>
+                <td colspan="1">Update attribute if set "Yes"</td>
+                <td style="text-align: center;" colspan="1">&nbsp;Yes</td>
+                <td colspan="1">&nbsp;</td>
+            </tr>
+            <tr>
+                <td colspan="1">Update products category</td>
+                <td colspan="1">Update attribute if set "Yes"</td>
+                <td style="text-align: center;" colspan="1">&nbsp;Yes</td>
+                <td colspan="1">&nbsp;</td>
+            </tr>
+            <tr>
+                <td colspan="1">Update status</td>
+                <td colspan="1">Update attribute if set "Yes"</td>
+                <td style="text-align: center;" colspan="1">&nbsp;Yes</td>
+                <td colspan="1">&nbsp;</td>
+            </tr>
+            <tr>
+                <td colspan="1">Update visibility</td>
+                <td colspan="1">Update attribute if set "Yes"</td>
+                <td style="text-align: center;" colspan="1">&nbsp;Yes</td>
+                <td colspan="1">&nbsp;</td>
+            </tr>
+            <tr>
+                <td colspan="1">Update stock availability</td>
+                <td colspan="1">Update attribute if set "Yes"</td>
+                <td style="text-align: center;" colspan="1">&nbsp;Yes</td>
+                <td colspan="1">&nbsp;</td>
+            </tr>
+            <tr>
+                <td colspan="1">Update URL key</td>
+                <td colspan="1">Update attribute if set "Yes"</td>
+                <td style="text-align: center;" colspan="1">&nbsp;Yes</td>
+                <td colspan="1">&nbsp;</td>
+            </tr>
+            <tr>
+                <td colspan="1">Import product images (via Cron)</td>
+                <td colspan="1">If setting is enabled then image will be added to the queue for
+                    downloading
+                </td>
+                <td style="text-align: center;" colspan="1">&nbsp;Yes</td>
+                <td colspan="1">&nbsp;</td>
+            </tr>
+            <tr>
+                <td colspan="1">Re-index Required</td>
+                <td colspan="1">Run re-index of all the content after finishing the import process</td>
+                <td style="text-align: center;" colspan="1">&nbsp;Yes</td>
+                <td colspan="1">&nbsp;</td>
+            </tr>
+            <tr>
+            <td colspan="1"><span>When you want to run cron ?</span></td>
+            <td colspan="1">Time when you want to start the cron job of import process</td>
+            <td colspan="1">30 7 * * *</td><td colspan="1">&nbsp;</td>
+            </tr>
+            <tr>
+                <td colspan="4"><h4 id="Magentoextension::IceImport(byshopowner)-Attributesmapping">
+                    Attributes mapping</h4></td>
+            </tr>
+            <tr>
+                <td colspan="1">MPN</td>
+                <td colspan="1"><p><span class="short_text" lang="en">This value is required and can`t be empty.</span>
+                </p></td>
+                <td colspan="1">&nbsp;</td>
+                <td colspan="1">&nbsp;</td>
+            </tr>
+            <tr>
+                <td colspan="1">Brand</td>
+                <td colspan="1"><p>This value is required and can`t be empty.</p></td>
+                <td colspan="1">&nbsp;</td>
+                <td colspan="1">&nbsp;</td>
+            </tr>
+            <tr>
+                <td colspan="1">GTIN</td>
+                <td colspan="1"><p>This value is required and can`t be empty.</p></td>
+                <td colspan="1">&nbsp;</td>
+                <td colspan="1">&nbsp;</td>
+            </tr>
+            <tr>
+                <td colspan="1"><span class="short_text" lang="en">Delivery ETA</span></td>
+                <td colspan="1">This value is required and can`t be empty.</td>
+                <td colspan="1">&nbsp;</td>
+                <td colspan="1">&nbsp;</td>
+            </tr>
+            <tr>
+                <td colspan="1">Websites</td>
+                <td colspan="1">Choose website in the Magento to proceed import products</td>
+                <td style="text-align: center;" colspan="1">None</td>
+                <td colspan="1">&nbsp;</td>
+            </tr>
+            <tr>
+                <td colspan="1">Stock name</td>
+                <td colspan="1">Name of stock (parameter of stock name from table `cataloginventory_stock`)</td>
+                <td style="text-align: center;" colspan="1">None</td>
+                <td colspan="1">&nbsp;</td>
+            </tr>
+            <tr>
+                <td colspan="3"><h4 id="Magentoextension::IceImport(byshopowner)-ImportParameters">Import
+                    Parameters</h4></td>
+                <td>&nbsp;</td>
+            </tr>
+            <tr>
+                <td colspan="1">Batch size</td>
+                <td colspan="1">This setting is responsing for the count of products that can be added per
+                    query
+                </td>
+                <td style="text-align: center;" colspan="1">100</td>
+                <td colspan="1">&nbsp;</td>
+            </tr>
+            <tr>
+                <td colspan="1">Import new products</td>
+                <td colspan="1"><p><span
+                        style="color: rgb(47,47,47);">Add products from import file </span></p>
+
+                    <p><span style="color: rgb(47,47,47);">if they aren`t presented in shop`s assortment.</span></p></td>
+                <td style="text-align: center;" colspan="1">Yes</td>
+                <td colspan="1">&nbsp;</td>
+            </tr>
+            <tr>
+                <td colspan="1">Remove old products</td>
+                <td colspan="1"><p><span
+                        style="color: rgb(47,47,47);">Remove products marked as&nbsp;</span><strong>"is_iceimport"</strong><span
+                        style="color: rgb(47,47,47);">&nbsp;</span></p>
+
+                    <p><span style="color: rgb(47,47,47);">and not presented in import file.</span></p></td>
+                <td style="text-align: center;" colspan="1">Yes</td>
+                <td colspan="1">&nbsp;</td>
+            </tr>
+            <tr>
+                <td colspan="1">Tolerance of difference (%)</td>
+                <td colspan="1"><p>Indicator of removing old products (products in the store but doesn`t
+                    exist any more in an import file). <br>If percentage of "old" products in store more than this value - in
+                    this case the removing process will be canceled. <br>If less - old products will be deleted (this process
+                    takes effect only to products imported via IceShop Iceimport, <br><strong>any custom products that were
+                        created by yourself, won`t be deleted</strong>).</p></td>
+                <td style="text-align: center;" colspan="1">25</td>
+                <td colspan="1">&nbsp;</td>
+            </tr>
+            <tr>
+                <td colspan="1">Set to active imported categories</td>
+                <td colspan="1">All new imported&nbsp;categories will be active</td>
+                <td style="text-align: center;" colspan="1">Yes</td>
+                <td colspan="1">&nbsp;</td>
+            </tr>
+            <tr>
+                <td colspan="1">Sort categories in ASC order</td>
+                <td colspan="1"><p>If setting is enabled then sort order for categories changed</p>
+
+                    <p>in depend of category name</p></td>
+                <td style="text-align: center;" colspan="1">Yes</td>
+                <td colspan="1">&nbsp;</td>
+            </tr>
+            <tr>
+                <td colspan="1">Hide empty category</td>
+                <td colspan="1">&nbsp;</td>
+                <td style="text-align: center;" colspan="1">Yes</td>
+                <td colspan="1">&nbsp;</td>
+            </tr>
+            <tr>
+                <td colspan="1">Default tax for product</td>
+                <td colspan="1">You can slelect taxes from dropdown menu</td>
+                <td style="text-align: center;" colspan="1">None</td>
+                <td colspan="1">&nbsp;</td>
+            </tr>
+            <tr>
+                <td colspan="1">ImagesQueueProcessing only</td>
+                <td colspan="1"><p>If <strong>YES</strong> - all images will be downloaded automatically at the end of next import process.</p>
+
+                    <p>if <strong>NO</strong> - will be added only links for images, and customer wants - he can download them manually
+from            Iceimport Information Dashboard > Images Statistics.</p></td>
+                <td style="text-align: center;" colspan="1">No</td>
+                <td colspan="1">&nbsp;</td>
+            </tr>
+            <tr>
+                <td colspan="1">Transactions enabled</td>
+                <td colspan="1">This setting is responsing for enabling/disabling of transactions during import process. 
+                </td>
+                <td style="text-align: center;" colspan="1">No</td>
+                <td colspan="1">&nbsp;</td>
+            </tr>
+            </tbody>
+        </table>
+    <style>
+        .explanation_table, .explanation_table th, .explanation_table td {
+             border: solid 1px black;
+        }
+    </style>
+    ';
+        echo $content;
+    }
+
 }

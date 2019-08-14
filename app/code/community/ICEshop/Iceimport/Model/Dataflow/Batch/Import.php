@@ -49,5 +49,4 @@ class ICEshop_Iceimport_Model_Dataflow_Batch_Import extends Mage_Dataflow_Model_
 
         return $this;
     }
-
 }
