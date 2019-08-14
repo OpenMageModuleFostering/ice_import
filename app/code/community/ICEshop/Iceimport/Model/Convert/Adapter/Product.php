@@ -147,43 +147,49 @@ class ICEshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
         $sku = $iceimportAttributes['sku'];
 
         // set category, unspsc, unspsc path
-        if (empty($iceimportAttributes['categories'])) {
+      /*if (empty($iceimportAttributes['categories'])) {
             $message = Mage::helper('catalog')->__('Skip import row, required field "%s" not defined', 'categories');
             Mage::throwException($message);
+        }*/
+
+        if (!empty($iceimportAttributes['categories'])) {
+          if (!empty($iceimportAttributes['categories'])) {
+              $cat_names = explode('/', $iceimportAttributes['categories']);
+              foreach ($cat_names as $cat_name) {
+                  if (empty($cat_name)) {
+                      $message = Mage::helper('catalog')->__('Skip import row, some of categories does not have name');
+                      Mage::throwException($message);
+                  }
+              }
+          }
         }
         if (!empty($iceimportAttributes['categories'])) {
-            $cat_names = explode('/', $iceimportAttributes['categories']);
-            foreach ($cat_names as $cat_name) {
-                if (empty($cat_name)) {
-                    $message = Mage::helper('catalog')->__('Skip import row, some of categories does not have name');
-                    Mage::throwException($message);
-                }
-            }
+          $category = $iceimportAttributes['categories'];
+          if (empty($iceimportAttributes['unspsc'])) {
+              $message = Mage::helper('catalog')->__('Skip import. Category UNSPSC not defined in store');
+              Mage::throwException($message);
+          }
+          $unspsc = $iceimportAttributes['unspsc'];
+          if (empty($iceimportAttributes['unspsc_path'])) {
+              $message = Mage::helper('catalog')->__('Skip import. Category UNSPSC path not defined in store');
+              Mage::throwException($message);
+          }
+          if (!empty($iceimportAttributes['unspsc_path'])) {
+              $cat_unspscs = explode('/', $iceimportAttributes['unspsc_path']);
+              foreach ($cat_unspscs as $cat_unspsc) {
+                  if (empty($cat_unspsc)) {
+                      $message = Mage::helper('catalog')->__('Skip import row, some of categories does not have UNSPSC');
+                      Mage::throwException($message);
+                  }
+              }
+          }
+          $unspscPath = $iceimportAttributes['unspsc_path'];
+          if (!empty($cat_unspscs) && !empty($cat_names) && count($cat_names) != count($cat_unspscs)) {
+              $message = Mage::helper('catalog')->__('Skip import row, categories names does not match categories UNSPSC');
+              Mage::throwException($message);
+          }
         }
-        $category = $iceimportAttributes['categories'];
-        if (empty($iceimportAttributes['unspsc'])) {
-            $message = Mage::helper('catalog')->__('Skip import. Category UNSPSC not defined in store');
-            Mage::throwException($message);
-        }
-        $unspsc = $iceimportAttributes['unspsc'];
-        if (empty($iceimportAttributes['unspsc_path'])) {
-            $message = Mage::helper('catalog')->__('Skip import. Category UNSPSC path not defined in store');
-            Mage::throwException($message);
-        }
-        if (!empty($iceimportAttributes['unspsc_path'])) {
-            $cat_unspscs = explode('/', $iceimportAttributes['unspsc_path']);
-            foreach ($cat_unspscs as $cat_unspsc) {
-                if (empty($cat_unspsc)) {
-                    $message = Mage::helper('catalog')->__('Skip import row, some of categories does not have UNSPSC');
-                    Mage::throwException($message);
-                }
-            }
-        }
-        $unspscPath = $iceimportAttributes['unspsc_path'];
-        if (!empty($cat_unspscs) && !empty($cat_names) && count($cat_names) != count($cat_unspscs)) {
-            $message = Mage::helper('catalog')->__('Skip import row, categories names does not match categories UNSPSC');
-            Mage::throwException($message);
-        }
+
         // set in / out of stock
         $isInStock = 0;
         if (!empty($iceimportAttributes['is_in_stock'])) {
@@ -262,9 +268,11 @@ class ICEshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
                 FROM `{$this->_tablePrefix}eav_entity_type`
                 WHERE entity_type_code = 'catalog_product';";
 
+if (!empty($iceimportAttributes['categories'])) {
         $initAttributes .= "SELECT @category_entity_type_id := `entity_type_id`
                 FROM `{$this->_tablePrefix}eav_entity_type`
                 WHERE entity_type_code = 'catalog_category';";
+}
 
         $initAttributes .= "SELECT @attribute_set_id := `attribute_set_id`
                 FROM `{$this->_tablePrefix}eav_attribute_set`
@@ -276,30 +284,32 @@ class ICEshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
                 WHERE `attribute_code` = 'price'
                     AND entity_type_id = @product_entity_type_id;";
 
-        $initAttributes .= "SELECT @unspsc_id := `attribute_id`
-                FROM `{$this->_tablePrefix}eav_attribute`
-                WHERE `attribute_code` = 'unspsc'
-                    AND entity_type_id = @category_entity_type_id;";
+        if (!empty($iceimportAttributes['categories'])) {
+          $initAttributes .= "SELECT @unspsc_id := `attribute_id`
+                  FROM `{$this->_tablePrefix}eav_attribute`
+                  WHERE `attribute_code` = 'unspsc'
+                      AND entity_type_id = @category_entity_type_id;";
 
-        $initAttributes .= "SELECT @category_name_id := `attribute_id`
-                FROM `{$this->_tablePrefix}eav_attribute`
-                WHERE `attribute_code` = 'name'
-                    AND entity_type_id = @category_entity_type_id;";
+          $initAttributes .= "SELECT @category_name_id := `attribute_id`
+                  FROM `{$this->_tablePrefix}eav_attribute`
+                  WHERE `attribute_code` = 'name'
+                      AND entity_type_id = @category_entity_type_id;";
 
-        $initAttributes .= "SELECT @category_active_id := `attribute_id`
-                FROM `{$this->_tablePrefix}eav_attribute`
-                WHERE `attribute_code` = 'is_active'
-                    AND entity_type_id = @category_entity_type_id;";
+          $initAttributes .= "SELECT @category_active_id := `attribute_id`
+                  FROM `{$this->_tablePrefix}eav_attribute`
+                  WHERE `attribute_code` = 'is_active'
+                      AND entity_type_id = @category_entity_type_id;";
 
-        $initAttributes .= "SELECT @include_nav_bar_id := `attribute_id`
-                FROM `{$this->_tablePrefix}eav_attribute`
-                WHERE `attribute_code` = 'include_in_menu'
-                    AND entity_type_id = @category_entity_type_id;";
+          $initAttributes .= "SELECT @include_nav_bar_id := `attribute_id`
+                  FROM `{$this->_tablePrefix}eav_attribute`
+                  WHERE `attribute_code` = 'include_in_menu'
+                      AND entity_type_id = @category_entity_type_id;";
 
-        $initAttributes .= "SELECT @category_is_anchor_id := `attribute_id`
-                FROM `{$this->_tablePrefix}eav_attribute`
-                WHERE `attribute_code` = 'is_anchor'
-                    AND entity_type_id = @category_entity_type_id;";
+          $initAttributes .= "SELECT @category_is_anchor_id := `attribute_id`
+                  FROM `{$this->_tablePrefix}eav_attribute`
+                  WHERE `attribute_code` = 'is_anchor'
+                      AND entity_type_id = @category_entity_type_id;";
+        }
 
         $initAttributes .= "SELECT @tax_auvibel_id := `attribute_id`
                   FROM `{$this->_tablePrefix}eav_attribute`
@@ -340,9 +350,11 @@ class ICEshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
         $defaulttaxConf = (int)Mage::getStoreConfig('iceshop_iceimport_importprod_root/importprod/default_tax', $storeId);
         $productData['int']['tax_class_id'] = $defaulttaxConf;
 
-        // get category id
-        $categoriesToActiveConf = Mage::getStoreConfig('iceshop_iceimport_importprod_root/importprod/category_active', $storeId);
-        $categoryIds = $this->_addCategories($category, $storeId, $unspsc, $unspscPath, $categoriesToActiveConf);
+        if (!empty($iceimportAttributes['categories'])) {
+          // get category id
+          $categoriesToActiveConf = Mage::getStoreConfig('iceshop_iceimport_importprod_root/importprod/category_active', $storeId);
+          $categoryIds = $this->_addCategories($category, $storeId, $unspsc, $unspscPath, $categoriesToActiveConf);
+        }
 
         // get url key
         $url = '';
@@ -361,7 +373,12 @@ class ICEshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
             $stockConf = (int)Mage::getStoreConfig('iceshop_iceimport_importprod_root/importprod/import_stock', $storeId);
             $priceConf = (int)Mage::getStoreConfig('iceshop_iceimport_importprod_root/importprod/import_prices', $storeId);
 
+          if (!empty($iceimportAttributes['categories'])) {
             $productId = $this->_coreSave($productData, $productId, $storeId, $sku, $categoryIds);
+          } else {
+            $productId = $this->_coreSave($productData, $productId, $storeId, $sku);
+          }
+
             $this->_corePriceStock($websiteId, $productId, $price, $qty, $sku, $isInStock, $stockConf, $priceConf, 0);
 
             $this->_connRes->query("INSERT INTO {$this->_tablePrefix}iceshop_iceimport_imported_product_ids (product_id, product_sku) VALUES (:prod_id, :sku) ON DUPLICATE KEY UPDATE product_sku = :sku", array(':prod_id' => $productId, ':sku' => $sku));
@@ -370,7 +387,13 @@ class ICEshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
                 $session->setData("skipped_counter", (int)++$skipped_counter);
                 return true;
             }
+
+          if (!empty($iceimportAttributes['categories'])) {
             $productId = $this->_coreSave($productData, $productId, $storeId, $sku, $categoryIds);
+          } else {
+            $productId = $this->_coreSave($productData, $productId, $storeId, $sku);
+          }
+
             // add price & stock
             $this->_corePriceStock($websiteId, $productId, $price, $qty, $sku, $isInStock);
             $this->_connRes->query("INSERT INTO {$this->_tablePrefix}iceshop_iceimport_imported_product_ids (product_id, product_sku) VALUES (:prod_id, :sku) ON DUPLICATE KEY UPDATE product_sku = :sku", array(':prod_id' => $productId, ':sku' => $sku));
@@ -493,7 +516,7 @@ class ICEshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
      * @param $categoryIds
      * @return null
      */
-    protected function _coreSave(array $entityData, $productId = null, $storeId = 0, $sku, $categoryIds)
+    protected function _coreSave(array $entityData, $productId = null, $storeId = 0, $sku, $categoryIds =NULL)
     {
         $coreSaveSQL = '';
         $newProduct = false;
@@ -623,7 +646,7 @@ class ICEshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
             }
         }
         // categories
-        if ($newProduct || ($productId === null) || ($productId !== null && $this->_getRefreshSetting('categories') == 1)) {
+        if (($newProduct || ($productId === null) || ($productId !== null && $this->_getRefreshSetting('categories') == 1)) && !empty($categoryIds)) {
             $coreSaveSQL .= "INSERT INTO `{$this->_tablePrefix}catalog_category_product` (`category_id`, `product_id`, `position`) VALUES ";
             $counter = 1;
 

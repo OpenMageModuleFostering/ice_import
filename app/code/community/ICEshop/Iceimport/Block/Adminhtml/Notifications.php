@@ -13,11 +13,13 @@ class ICEshop_Iceimport_Block_Adminhtml_Notifications extends Mage_Adminhtml_Blo
         $checker = Mage::helper('iceimport/system_systemcheck')->init();
         $problems_digest = $checker->getExtensionProblemsDigest();
         $response = array();
-        if ($problems_digest->getCount() != 0) {
-            $problems = $problems_digest->getProblems();
-            foreach ($problems as $problem_name => $problem_value) {
-                $response[] = array($problem_name => $problem_value);
-            }
+        if($checker->checkSetWarning()){
+          if ($problems_digest->getCount() != 0) {
+              $problems = $problems_digest->getProblems();
+              foreach ($problems as $problem_name => $problem_value) {
+                  $response[] = array($problem_name => $problem_value);
+              }
+          }
         }
         return $response;
     }

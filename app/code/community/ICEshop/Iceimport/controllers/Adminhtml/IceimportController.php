@@ -43,7 +43,9 @@ class ICEshop_Iceimport_Adminhtml_IceimportController extends Mage_Adminhtml_Con
                             $i = 1;
                             foreach ($problems as $problem_section_name => $problem_section) {
                                 if($problem_section_name !='iceimport_delete_product'){
+
                                     foreach ($problem_section as $problem_name => $problem_value) {
+
                                         print '<tr>';
                                         print '<td class="label">';
                                         print '<label class="problem-digest">' . $helper->__('Problem') . " " . $i . ':</label>';
@@ -55,6 +57,31 @@ class ICEshop_Iceimport_Adminhtml_IceimportController extends Mage_Adminhtml_Con
                                             print '<span class="requirement-passed">"' . $problem_value['label'] . '"</span> <span class="requirement-failed">"' . $problem_value['current_value'] . '"</span>. ' . $helper->__(' Check ') . ' <a class="section-toggler-trigger-iceimport requirement-passed" data-href="#' . $problem_section_name . '-section" href="#' . $problem_section_name . '-section">' . ucfirst($problem_section_name) . '</a> ' . $helper->__('section') . '.';
                                         }
                                         print '</td>';
+                                        if($problem_section_name != 'requirement' && $problem_section_name != 'rewrite'){
+                                            print '<td class="value">';
+                                            print '<span class="f-right">'
+                                            . '<a href="' . Mage::helper("adminhtml")->getUrl("adminhtml/iceimport/checkwarning/", array('warning'=>$problem_name,'section_problems' => $problem_section_name)) . '">'
+                                                    . Mage::helper( 'iceimport' )->__( 'Acknowledge' ) . '</a></span>';
+                                            print '</td>';
+                                        } elseif ($problem_section_name == 'requirement') {
+                                            print '<td class="value">';
+                                            print '<span class="f-right">'
+                                            . '<a href="' . Mage::helper("adminhtml")->getUrl("adminhtml/iceimport/checkwarning/", array('warning'=>$problem_value['label'],'section_problems' => $problem_section_name)) . '">'
+                                                    . Mage::helper( 'iceimport' )->__( 'Acknowledge' ) . '</a></span>';
+                                            print '</td>';
+                                        } elseif ($problem_section_name == 'rewrite') {
+                                            print '<td class="value">';
+                                            print '<span class="f-right">'
+                                            . '<a href="' . Mage::helper("adminhtml")->getUrl("adminhtml/iceimport/checkwarning/", array('warning'=>$problem_name,'section_problems' => $problem_section_name)) . '">'
+                                                    . Mage::helper( 'iceimport' )->__( 'Acknowledge' ) . '</a></span>';
+                                            print '</td>';
+                                        } elseif ($problem_section_name == 'iceimport_log') {
+                                            print '<td class="value">';
+                                            print '<span class="f-right">'
+                                            . '<a href="' . Mage::helper("adminhtml")->getUrl("adminhtml/iceimport/checkwarning/", array('warning'=>$problem_name,'section_problems' => $problem_section_name)) . '">'
+                                                    . Mage::helper( 'iceimport' )->__( 'Acknowledge' ) . '</a></span>';
+                                            print '</td>';
+                                        }
                                         print '</tr>';
                                         $i++;
                                     }
@@ -65,8 +92,15 @@ class ICEshop_Iceimport_Adminhtml_IceimportController extends Mage_Adminhtml_Con
                                         print '<label class="problem-digest">' . $helper->__('Problem') . " " . $i . ':</label>';
                                         print '</td>';
                                         print '<td class="value">';
-                                            print '<span class="requirement-failed">' . $problem_value['label'] . ': </span>  <span class="requirement">' . $problem_value['current_value'] . '</span> ';
+                                        print '<span class="requirement-failed">' . $problem_value['label'] . ': </span>  <span class="requirement">' . $problem_value['current_value'] . '</span> ';
                                         print '</td>';
+
+                                        print '<td class="value">';
+                                        print '<span class="f-right">'
+                                        . '<a href="' . Mage::helper("adminhtml")->getUrl("adminhtml/iceimport/checkwarning/", array('warning'=>$problem_name, 'section_problems' => $problem_section_name)) . '">'
+                                                . Mage::helper( 'iceimport' )->__( 'Acknowledge' ) .'</a></span>';
+                                        print '</td>';
+
                                         print '</tr>';
                                         $i++;
                                     }
@@ -82,6 +116,7 @@ class ICEshop_Iceimport_Adminhtml_IceimportController extends Mage_Adminhtml_Con
                                        target="_blank">&raquo;<?php print $helper->__('Click to generate'); ?></a>
                                     <p class="note"><?php print $helper->__("Use this report for more info on found problems or send it to Iceshop B.V. to help analyzing the problem to speed up solution of any issues."); ?></p>
                                 </td>
+                                <td></td>
                             </tr>
                         </table>
                     </div>
@@ -1112,6 +1147,36 @@ class ICEshop_Iceimport_Adminhtml_IceimportController extends Mage_Adminhtml_Con
         $this->_prepareDownloadResponse($fileName, $grid->getCsvFile());
     }
 
+    /**
+     * Add to log skip notifications
+     */
+    public function checkwarningAction() {
+      $DB_logger = Mage::helper('iceimport/db');
+      $skip_data = $DB_logger->getLogEntryByKey('iceimport_skip_problems_digest');
 
+        $warning = $this->getRequest()->getParam('warning');
+        $section_problems = $this->getRequest()->getParam('section_problems');
+        if(empty($skip_data['log_value'])){
+          $skip_data = array();
+          $skip_data[$section_problems][] = $warning;
+          $skip_data = json_encode($skip_data);
+          $DB_logger->insertLogEntry('iceimport_skip_problems_digest', $skip_data);
+        } else {
+          $skip_data = (array)json_decode($skip_data['log_value']);
+          if(!empty($skip_data[$section_problems])){
+            if(!in_array($warning, $skip_data[$section_problems], true)){
+              $skip_data[$section_problems][] = $warning;
+              $skip_data = json_encode($skip_data);
+              $DB_logger->insertLogEntry('iceimport_skip_problems_digest', $skip_data);
+            }
+          } else {
+              $skip_data[$section_problems][] = $warning;
+              $skip_data = json_encode($skip_data);
+              $DB_logger->insertLogEntry('iceimport_skip_problems_digest', $skip_data);
+          }
+        }
+
+        $this->_redirectUrl(Mage::helper("adminhtml")->getUrl("*/system_config/edit", array('section' => 'iceimport_information')));
+    }
 
 }

@@ -114,8 +114,8 @@ class ICEshop_Iceimport_Helper_System_Systemcheck extends Mage_Core_Helper_Abstr
             'wait_timeout' => $mysqlVars['wait_timeout'] . ' sec.',
             'max_allowed_packet' => array(
                 'current_value' => $mysqlVars['max_allowed_packet'] . ' bytes',
-                'recommended_value' => '>= ' . (16 * 1024 * 1024),
-                'result' => ($mysqlVars['max_allowed_packet'] >= (16 * 1024 * 1024)),
+                'recommended_value' => '>= ' . (1 * 1024 * 1024),
+                'result' => ($mysqlVars['max_allowed_packet'] >= (1 * 1024 * 1024)),
                 'label' => 'Max Allowed Packet',
                 'advice' => array(
                     'label' => $this->__('The maximum size of one packet or any generated/intermediate string.'),
@@ -555,6 +555,14 @@ class ICEshop_Iceimport_Helper_System_Systemcheck extends Mage_Core_Helper_Abstr
      */
     public function getExtensionProblemsDigest()
     {
+      $DB_logger = Mage::helper('iceimport/db');
+      $skip_data = $DB_logger->getLogEntryByKey('iceimport_skip_problems_digest');
+      $skip_data_empty = FALSE;
+      if(!empty($skip_data['log_value'])){
+          $skip_data_empty = true;
+          $skip_data = (array)json_decode($skip_data['log_value']);
+      }
+
         $problems = array();
         $count = 0;
         //extension problems
@@ -562,12 +570,32 @@ class ICEshop_Iceimport_Helper_System_Systemcheck extends Mage_Core_Helper_Abstr
         $check_module = $check_module->getLastItem()->getData();
 
         if ($check_module['path_exists'] == 0) {
-            $problems['extension']['path_exists'] = $check_module['path_exists'];
-            $count++;
+            $path_exist_flag = true;
+            if($skip_data_empty && !empty($skip_data['extension'])){
+              foreach ($skip_data['extension'] as $key=>$value){
+                if($value=='path_exists'){
+                  $path_exist_flag =false;
+                }
+              }
+            }
+            if($path_exist_flag){
+              $problems['extension']['path_exists'] = $check_module['path_exists'];
+              $count++;
+            }
         }
         if ($check_module['config_exists'] == 0) {
-            $problems['extension']['config_exists'] = $check_module['config_exists'];
-            $count++;
+            $path_exist_flag = true;
+            if($skip_data_empty && !empty($skip_data['extension'])){
+              foreach ($skip_data['extension'] as $key=>$value){
+                if($value=='config_exists'){
+                  $path_exist_flag =false;
+                }
+              }
+            }
+            if($path_exist_flag){
+              $problems['extension']['config_exists'] = $check_module['config_exists'];
+              $count++;
+            }
         }
 
         //extension rewrites problems
@@ -579,50 +607,107 @@ class ICEshop_Iceimport_Helper_System_Systemcheck extends Mage_Core_Helper_Abstr
             }
         }
 
+        if($skip_data_empty && !empty($skip_data['rewrite'])){
+          foreach ($skip_data['rewrite'] as $key=>$value){
+              if(!empty($problems['rewrite'][$value])){
+                unset($problems['rewrite'][$value]);
+                $count--;
+              }
+          }
+        }
+
         //system requirements (for magento/extension)
         $requirements = $this->getSystem()->getRequirements()->getData();
         foreach ($requirements as $requirement) {
             if (!$requirement['result']) {
-                $problems['requirement'][] = $requirement;
-                $count++;
+                $requirement_flag = true;
+                if($skip_data_empty && !empty($skip_data['requirement'])){
+                  foreach ($skip_data['requirement'] as $key=>$value){
+                    if($value==$requirement['label']){
+                      $requirement_flag =false;
+                    }
+                  }
+                }
+                if($requirement_flag){
+                  $problems['requirement'][] = $requirement;
+                  $count++;
+                }
             }
         }
 
         //magento API problems
         $magento_api_session_timeout = $this->getSystem()->getMagentoApi()->getSessionTimeout();
         if (!$magento_api_session_timeout['result']) {
-            $problems['api']['timeout'] = $magento_api_session_timeout;
-            $count++;
+            $api_skip_flag = true;
+            if($skip_data_empty && !empty($skip_data['api'])){
+              foreach ($skip_data['api'] as $key=>$value){
+                if($value=='timeout'){
+                    $api_skip_flag =false;
+                }
+              }
+            }
+            if($api_skip_flag){
+              $problems['api']['timeout'] = $magento_api_session_timeout;
+              $count++;
+            }
         }
 
         $mysql = $this->getSystem()->getMysql()->getData();
         foreach ($mysql as $mysql_param_name => $mysql_param_value) {
             if (is_array($mysql_param_value) && !$mysql_param_value['result']) {
-                $problems['mysql'][$mysql_param_name] = $mysql_param_value;
-                $count++;
+                $mysql_skip_flag = true;
+                if($skip_data_empty && !empty($skip_data['mysql'])){
+                  foreach ($skip_data['mysql'] as $key=>$value){
+                    if($value==$mysql_param_name){
+                        $mysql_skip_flag =false;
+                    }
+                  }
+                }
+                if($mysql_skip_flag){
+                  $problems['mysql'][$mysql_param_name] = $mysql_param_value;
+                  $count++;
+                }
             }
         }
 
-        $DB_logger = Mage::helper('iceimport/db');
-        $log_feed = $DB_logger->getLogByType('report', false, 1);
+        $log_feed = $DB_logger->getLogByType('report', false, 10);
         if (!empty($log_feed) && count($log_feed) > 0) {
             foreach($log_feed as $log_entry) {
                 $problems['iceimport_log'][] = array(
                     'label' => 'Iceimport Error',
                     'current_value' => $log_entry['log_value']
                 );
-//                $count++;
+                $count++;
             }
+        }
+
+        if($skip_data_empty && !empty($skip_data['iceimport_log'])){
+          foreach ($skip_data['iceimport_log'] as $key=>$value){
+              if(!empty($problems['iceimport_log'][$value])){
+                unset($problems['iceimport_log'][$value]);
+                $count--;
+              }
+          }
         }
 
         $try_delete_product = $DB_logger->getLogEntryByKey('error_try_delete_product');
         $delete_product_percentage = $DB_logger->getLogEntryByKey('error_try_delete_product_percentage');
         if(!empty($delete_product_percentage) && !empty($try_delete_product)) {
-            $problems['iceimport_delete_product'][] = array(
+            $iceimport_delete_product_skip_flag = true;
+            if($skip_data_empty && !empty($skip_data['iceimport_delete_product'])){
+              foreach ($skip_data['iceimport_delete_product'] as $key=>$value){
+                if($value=='delete_product'){
+                    $iceimport_delete_product_skip_flag =false;
+                }
+              }
+            }
+            if($iceimport_delete_product_skip_flag){
+            $problems['iceimport_delete_product']['delete_product'] = array(
                     'label' => 'There is a problem during last import',
                     'current_value' => $try_delete_product['log_value'].$delete_product_percentage['log_value']
                 );
             $count++;
+            }
         }
 
         $problems_digest = new Varien_Object();
@@ -631,11 +716,34 @@ class ICEshop_Iceimport_Helper_System_Systemcheck extends Mage_Core_Helper_Abstr
         return $problems_digest;
     }
 
+    /**
+     * Set warning message for extension
+     *
+     * @param String $massage
+     */
     public function setWarningIceimport($massage){
         Mage::getSingleton('adminhtml/session')->addNotice('Warning!'.$massage);
     }
 
+    /**
+     * Check skip wrning iceimport
+     * @return boolean
+     */
+    public function checkSetWarning(){
+      $DB_logger = Mage::helper('iceimport/db');
+        $skip_data = $DB_logger->getLogEntryByKey('iceimport_skip_problems_digest');
+      if(empty($skip_data['log_value'])){
+        return true;
+      } else {
+        return false;
+      }
+    }
 
+
+    /**
+     * Method return import images statistics
+     * @return string
+     */
     public function getImagesStatistics(){
       try{
           $db_res = Mage::getSingleton('core/resource')->getConnection('core_write');
