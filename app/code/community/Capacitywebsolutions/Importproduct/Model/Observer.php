@@ -14,7 +14,7 @@ class Capacitywebsolutions_Importproduct_Model_Observer
    */
   public function load() {
     
-    /*
+   /* 
     // test load
     $con = mysql_connect('localhost', 'test', 'test');
     $db = mysql_select_db('catch');
@@ -75,7 +75,45 @@ class Capacitywebsolutions_Importproduct_Model_Observer
           }
         
         }
-        
+
+        // download & set product images 
+        $queueList = $adapter->getImageQueue();
+        if (count($queueList) > 0) {
+          $mediaDir  = Mage::getBaseDir('media');
+          foreach ($queueList as $queue) {
+            $queueId      = $queue['queue_id'];
+            $productId    = $queue['entity_id'];
+            $imageUrl     = $queue['image_url'];
+            // TODO remove hardcode
+            $imageUrl     = 'http://magento17.batavi.org/media/download.jpg';
+
+            $preImageName = explode('/', $imageUrl);
+            $imageName    = array_pop($preImageName);
+            if (file_exists($mediaDir . DS . $imageName)) {
+              // TODO remove rand()
+              $imageName = rand() .'_'. time() . $imageName;
+            }
+
+            if(file_put_contents($mediaDir . DS . $imageName, file_get_contents($imageUrl))) {
+              $product = Mage::getModel('catalog/product')->load($productId);
+              $product->addImageToMediaGallery($mediaDir . DS . $imageName, 
+                array('image', 'small_image', 'thumbnail'),
+                true, true 
+              );
+              $product->save();
+              $adapter->setImageAsDownloaded($queueId);
+              echo $product->getCategory() . '<br>';
+              unset($product);
+            } else {
+              Mage::log('Unable download file to ' . $productId, $logFileName);
+              continue;
+            }
+          }
+        }
+
+        $processes = Mage::getSingleton('index/indexer')->getProcessesCollection();
+        $processes->walk('reindexAll');
+
         foreach ($profile->getExceptions() as $e) {
           Mage::log($e->getMessage(),null,$logFileName);          
         }        
@@ -92,6 +130,7 @@ class Capacitywebsolutions_Importproduct_Model_Observer
       Mage::log($e->getMessage(), null, $logFileName);
     }
 
+    // get prouct download queue
   }
   
 }

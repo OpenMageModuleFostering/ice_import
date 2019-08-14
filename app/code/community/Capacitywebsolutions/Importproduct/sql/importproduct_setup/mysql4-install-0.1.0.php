@@ -33,22 +33,19 @@
     (`entity_type_id`, `attribute_id`, `entity_id`, `value`)
     SELECT '{$entityTypeId}', '{$attributeId}', `entity_id`, '1'
     FROM `{$installer->getTable('catalog_category_entity')}`;
+
+    CREATE TABLE IF NOT EXISTS `{$installer->getTable('capacity_product_image_queue')}` 
+    (
+      `queue_id`  INT(10) NOT NULL AUTO_INCREMENT,
+      `entity_id` INT(10) UNSIGNED NOT NULL,
+      `image_url` VARCHAR(255) NOT NULL,
+      `is_downloaded` TINYINT NOT NULL DEFAULT 0,
+      PRIMARY KEY(`queue_id`),
+      UNIQUE KEY (`entity_id`, `image_url`),
+      CONSTRAINT `FK_CAP_PRD_IMG_QUEUE_ENTT_ID_CAT_PRD_ENTT_ENTT_ID` FOREIGN KEY (`entity_id`) REFERENCES `{$installer->getTable('catalog_product_entity')}` (`entity_id`) ON DELETE CASCADE
+    )ENGINE=InnoDB CHARSET=utf8 COMMENT='Table to manage product image import';
   ");
 
-  /*  
-  // set attribute to root category  
-  Mage::getModel('catalog/category')
-      ->load(1)
-      ->setImportedCatId(0)
-      ->setInitialSetupFlag(true)
-      ->save(); 
-
-  Mage::getModel('catalog/category')
-    ->load(2)
-    ->setImportedCatId(0)
-    ->setInitialSetupFlag(true)
-    ->save();
-  */
   $installer->endSetup();
  
 ?>

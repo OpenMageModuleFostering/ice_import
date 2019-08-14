@@ -6,16 +6,16 @@
         </Capacitywebsolutions_Importproduct>
     </modules>
     <global>
-        <models>
-            <catalog>
-                <rewrite>
-                    <!-- Override Mage_Catalog_Model_Convert_Adapter_Product -->
-                    <convert_adapter_product>Capacitywebsolutions_Importproduct_Model_Convert_Adapter_Product</convert_adapter_product>
-                </rewrite>
-            </catalog>
-            <importproduct>
-                <class>Capacitywebsolutions_Importproduct_Model</class>
-            </importproduct>
+      <models>
+          <catalog>
+              <rewrite>
+                  <!-- Override Mage_Catalog_Model_Convert_Adapter_Product -->
+                  <convert_adapter_product>Capacitywebsolutions_Importproduct_Model_Convert_Adapter_Product</convert_adapter_product>
+              </rewrite>
+          </catalog>
+          <importproduct>
+              <class>Capacitywebsolutions_Importproduct_Model</class>
+          </importproduct>
         </models>
         <resources>
             <importproduct_setup>
