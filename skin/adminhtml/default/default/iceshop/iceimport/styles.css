@@ -1,0 +1,124 @@
+#iceimport-warning {
+    background-color: #ef672f;
+    background-image: none;
+    border-bottom: none;
+    border-color: #c14800;
+    border-top: none;
+    color: #ffffff;
+    font-weight: bold;
+}
+
+#iceimport-warning .f-right {
+    background-color: #31302b;
+    display: inline-block;
+    height: 17px;
+    margin: -5px 0 -5px 0;
+    padding: 5px 10px 5px 10px;
+}
+
+#iceimport-warning .f-right a {
+    color: #ffffff;
+    font-weight: bold;
+    text-decoration: underline;
+}
+
+#iceimport-warning .f-right a:hover {
+    color: #ef672f;
+}
+
+#iceimport-warning strong {
+    background-color: #31302b;
+    color: #ffffff;
+    display: inline-block;
+    font-weight: bold;
+    height: 17px;
+    margin: -5px 10px -5px 0;
+    padding: 5px 10px 5px 10px;
+    text-transform: uppercase;
+}
+
+.iceimport-hidden {
+    display: none;
+}
+
+#iceimport-digest td.label {
+    width: 105px;
+}
+
+#iceimport-digest td.label label {
+    width: 70px;
+}
+
+#iceimport-digest td.label label.problem-digest {
+    background: url(../../images/error_msg_icon.gif) 0px 1px no-repeat;
+    color: #ef672f;
+    font-weight: bold;
+    padding-left: 20px;
+}
+
+.full-width,
+#iceimport-digest td.value {
+    width: 100% !important;
+}
+
+.iceimport-label-bold {
+    font-weight: bold;
+}
+
+.iceimport-label-uppercase {
+    text-transform: uppercase;
+}
+
+.iceimport-label-rewrite {
+    display: inline-block;
+    width: 120px;
+}
+
+.requirement-passed {
+    color: green;
+}
+
+.requirement-failed {
+    color: #ef672f;
+}
+
+a.iceimport-advice {
+    background: url(../../images/fam_help.gif) 0px 0px no-repeat;
+    display: inline-block;
+    height: 16px;
+    margin: -4px 0 -4px 4px;
+    width: 16px;
+}
+
+span.iceimport-pad-label {
+    display: inline-block;
+    width: 120px;
+}
+
+ul.tabs a.iceshop-info-section,
+ul.tabs a.iceshop-info-section:hover {
+    background: url(../../images/tabs_span_bg.gif) repeat-x 0 100%;
+    border-bottom: none;
+    padding: 0.5em 0.5em 0.28em 1.5em;
+}
+
+ul.tabs a.iceshop-info-section:hover {
+    background-color: #d8e6e6;
+}
+
+ul.tabs a.iceshop-info-section.active, ul.tabs a.iceshop-info-section.active:hover {
+    background-color: #fff;
+}
+
+ul.tabs a.iceshop-info-section span,
+ul.tabs a.iceshop-info-section:hover span {
+    background: url(./images/iceshop_logo_small_16px.png) no-repeat 0 0;
+    height: 0;
+    overflow: hidden;
+    padding: 16px 0 0;
+    width: 65px;
+}
+
+#row_iceshop_about_iceshop_iframe_iceshop_iframe_hidden {
+    display: none;
+}

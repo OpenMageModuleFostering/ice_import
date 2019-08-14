@@ -3,10 +3,10 @@
     "type": "magento-module",
     "license": "OSL-v.3",
     "homepage": "",
-    "description": "Import categories &amp; products",
+    "description": "Import categories & productsr",
     "authors": [
     {
-        "name": "Iceshop",
+        "name": "IceShop",
         "email": "support@iceshop.nl"
     }
 ],

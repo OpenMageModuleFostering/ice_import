@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<layout>
+    <adminhtml_system_config_edit>
+        <reference name="head">
+            <action method="addCss"><stylesheet>iceshop/iceimport/styles.css</stylesheet></action>
+            <action method="addJs"><script>ICEshop/Iceimport/jquery-1.11.1.min.js</script></action>
+            <action method="addJs"><script>ICEshop/Iceimport/script.js</script></action>
+        </reference>
+    </adminhtml_system_config_edit>
+    <default>
+        <reference name="notifications">
+            <reference name="head">
+                <action method="addCss"><stylesheet>iceshop/iceimport/styles.css</stylesheet></action>
+            </reference>
+            <block type="iceimport/adminhtml_notifications" name="iceimport_notifications" template="iceshop/iceimport/notifications.phtml"/>
+        </reference>
+    </default>
+</layout>

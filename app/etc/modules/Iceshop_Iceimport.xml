@@ -1,9 +1,0 @@
-<?xml version="1.0"?>
-<config>
-    <modules>
-        <Iceshop_Iceimport>
-            <active>true</active>
-            <codePool>community</codePool>
-        </Iceshop_Iceimport>
-    </modules>
-</config>

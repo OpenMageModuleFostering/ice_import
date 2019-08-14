@@ -1,0 +1,372 @@
+<?xml version="1.0"?>
+<config>
+    <tabs>
+        <iceshop translate="label" module="iceimport">
+            <label>Iceshop</label>
+            <sort_order>150</sort_order>
+        </iceshop>
+    </tabs>
+    <sections>
+        <iceshop_iceimport_importprod_root translate="label" module="catalog">
+            <class>separator-top</class>
+            <label>IceImport Settings</label>
+            <tab>iceshop</tab>
+            <frontend_type>text</frontend_type>
+            <sort_order>30</sort_order>
+            <show_in_default>1</show_in_default>
+            <show_in_website>1</show_in_website>
+            <show_in_store>1</show_in_store>
+            <groups>
+                <importprod translate="label">
+                    <label>IceImport Settings</label>
+                    <frontend_type>text</frontend_type>
+                    <sort_order>50</sort_order>
+                    <show_in_default>1</show_in_default>
+                    <show_in_website>1</show_in_website>
+                    <show_in_store>1</show_in_store>
+                    <fields>
+                        <basic_settings_heading translate="label">
+                            <label>Content Settings</label>
+                            <frontend_model>adminhtml/system_config_form_field_heading</frontend_model>
+                            <sort_order>0</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </basic_settings_heading>
+                        <basic_settings_note translate="label">
+                            <label><![CDATA[<strong>Caution!</strong>]]></label>
+                            <comment><![CDATA[All the settings in this section are valid and used only for existing products, for new products the value is Yes and it can't be changed]]></comment>
+                            <frontend_type>label</frontend_type>
+                            <sort_order>1</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </basic_settings_note>
+                        <import_product_ean translate="label">
+                            <label>Update EAN</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>iceimport/system_config_yesno</source_model>
+                            <sort_order>21</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </import_product_ean>
+                        <import_product_mpn translate="label">
+                            <label>Update MPN</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>iceimport/system_config_yesno</source_model>
+                            <sort_order>22</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </import_product_mpn>
+                        <import_product_brand_name translate="label">
+                            <label>Update brand</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>iceimport/system_config_yesno</source_model>
+                            <sort_order>23</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <enabled>1</enabled>
+                        </import_product_brand_name>
+                        <import_product_name translate="label">
+                            <label>Update name</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>iceimport/system_config_yesno</source_model>
+                            <sort_order>24</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </import_product_name>
+                        <import_product_short_description translate="label">
+                            <label>Update short description</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>iceimport/system_config_yesno</source_model>
+                            <sort_order>25</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </import_product_short_description>
+                        <import_product_description translate="label">
+                            <label>Update description</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>iceimport/system_config_yesno</source_model>
+                            <sort_order>26</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </import_product_description>
+                        <import_product_short_summary_description translate="label">
+                            <label>Update short summary description</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>iceimport/system_config_yesno</source_model>
+                            <sort_order>27</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </import_product_short_summary_description>
+                        <import_product_summary_description translate="label">
+                            <label>Update summary description</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>iceimport/system_config_yesno</source_model>
+                            <sort_order>28</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </import_product_summary_description>
+                        <import_prices translate="label">
+                            <label>Update prices</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>iceimport/system_config_yesno</source_model>
+                            <sort_order>29</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </import_prices>
+                        <import_stock translate="label">
+                            <label>Update stock</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>iceimport/system_config_yesno</source_model>
+                            <sort_order>30</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </import_stock>
+                        <import_product_delivery_eta translate="label">
+                            <label>Update delivery eta</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>iceimport/system_config_yesno</source_model>
+                            <sort_order>31</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </import_product_delivery_eta>
+                        <update_categories_from_csv translate="label">
+                            <label><![CDATA[Update products category]]></label>
+                            <comment><![CDATA[]]></comment>
+                            <frontend_type>select</frontend_type>
+                            <source_model>iceimport/system_config_yesno</source_model>
+                            <sort_order>32</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </update_categories_from_csv>
+                        <update_status_from_csv translate="label">
+                            <label><![CDATA[Update status]]></label>
+                            <comment><![CDATA[]]></comment>
+                            <frontend_type>select</frontend_type>
+                            <source_model>iceimport/system_config_yesno</source_model>
+                            <sort_order>33</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </update_status_from_csv>
+                        <update_visibility_from_csv translate="label">
+                            <label><![CDATA[Update visibility]]></label>
+                            <comment><![CDATA[]]></comment>
+                            <frontend_type>select</frontend_type>
+                            <source_model>iceimport/system_config_yesno</source_model>
+                            <sort_order>34</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </update_visibility_from_csv>
+                        <update_is_in_stock_from_csv translate="label">
+                            <label><![CDATA[Update stock availability]]></label>
+                            <comment><![CDATA[]]></comment>
+                            <frontend_type>select</frontend_type>
+                            <source_model>iceimport/system_config_yesno</source_model>
+                            <sort_order>35</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </update_is_in_stock_from_csv>
+                        <update_url_key_from_csv translate="label">
+                            <label><![CDATA[Update URL key]]></label>
+                            <comment><![CDATA[]]></comment>
+                            <frontend_type>select</frontend_type>
+                            <source_model>iceimport/system_config_yesno</source_model>
+                            <sort_order>36</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </update_url_key_from_csv>
+                        <import_images translate="label">
+                            <label>Import product images (via Cron)</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>iceimport/system_config_yesno</source_model>
+                            <sort_order>37</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </import_images>
+                        <refresh_settings_heading translate="label">
+                            <label>Import Parameters</label>
+                            <frontend_model>adminhtml/system_config_form_field_heading</frontend_model>
+                            <sort_order>120</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </refresh_settings_heading>
+                        <iceimport_batch_size translate="label">
+                            <label><![CDATA[Batch size]]></label>
+                            <comment><![CDATA[]]></comment>
+                            <frontend_type>text</frontend_type>
+                            <validate>validate-greater-than-zero</validate>
+                            <sort_order>130</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </iceimport_batch_size>
+                        <import_new_products translate="label">
+                            <label>Import new products</label>
+                            <comment><![CDATA[Add products from import file if they aren't presented in shop's assortment.]]></comment>
+                            <frontend_type>select</frontend_type>
+                            <source_model>iceimport/system_config_yesno</source_model>
+                            <sort_order>138</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </import_new_products>
+                        <delete_old_products translate="label">
+                            <label>Remove old products</label>
+                            <comment><![CDATA[Remove products marked as <strong>"is_iceimport"</strong> and not presented in import file.]]></comment>
+                            <frontend_type>select</frontend_type>
+                            <source_model>iceimport/system_config_yesno</source_model>
+                            <sort_order>139</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </delete_old_products>
+                        <delete_old_products_tolerance translate="label">
+                            <label><![CDATA[Tolerance of difference (%)]]></label>
+                            <comment><![CDATA[If difference is greater than this value - remove process will be cancelled.]]></comment>
+                            <frontend_type>text</frontend_type>
+                            <validate>validate-greater-than-zero validate-percents</validate>
+                            <sort_order>140</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <depends>
+                                <delete_old_products>1</delete_old_products>
+                            </depends>
+                        </delete_old_products_tolerance>
+                        <category_active translate="label">
+                            <label>Set to active imported categories</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>iceimport/system_config_yesno</source_model>
+                            <sort_order>141</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </category_active>
+                        <category_sort translate="label">
+                            <label>Sort categories in ASC order</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>iceimport/system_config_yesno</source_model>
+                            <sort_order>142</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </category_sort>
+                        <update_hide_category translate="label">
+                            <label><![CDATA[Hide empty category]]></label>
+                            <comment><![CDATA[]]></comment>
+                            <frontend_type>select</frontend_type>
+                            <source_model>iceimport/system_config_yesno</source_model>
+                            <sort_order>143</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </update_hide_category>
+                        <default_tax translate="label">
+                            <label>Default tax for product</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>iceimport/system_config_defaulttax</source_model>
+                            <sort_order>144</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </default_tax>
+                        <images_queue_processing_only translate="label">
+                            <label><![CDATA[ImagesQueueProcessing only]]></label>
+                            <comment><![CDATA[Run <strong>ONLY</strong> images queue processing instead of whole actions stack. Setting used <strong>ONLY</strong> while running via Cron.]]></comment>
+                            <frontend_type>select</frontend_type>
+                            <source_model>iceimport/system_config_yesno</source_model>
+                            <sort_order>145</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </images_queue_processing_only>
+                    </fields>
+                </importprod>
+            </groups>
+        </iceshop_iceimport_importprod_root>
+        <iceimport_information translate="label" module="iceimport">
+            <label>IceImport Information</label>
+            <tab>iceshop</tab>
+            <sort_order>40</sort_order>
+            <show_in_default>1</show_in_default>
+            <show_in_website>1</show_in_website>
+            <show_in_store>1</show_in_store>
+            <comment><![CDATA[]]></comment>
+            <groups>
+                <dashboard translate="label comment">
+                    <label>Dashboard</label>
+                    <sort_order>50</sort_order>
+                    <show_in_default>1</show_in_default>
+                    <show_in_website>1</show_in_website>
+                    <show_in_store>1</show_in_store>
+                    <comment><![CDATA[<span style="color: grey;">Loading...</span>]]></comment>
+                    <fields>
+                        <check_system_hidden translate="label comment">
+                            <label></label>
+                            <comment></comment>
+                            <frontend_type>select</frontend_type>
+                            <source_model>iceimport/system_config_checksystem</source_model>
+                            <sort_order>10</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </check_system_hidden>
+                    </fields>
+                </dashboard>
+            </groups>
+        </iceimport_information>
+        <iceshop_about translate="label" module="iceimport">
+            <label>Iceshop</label>
+            <tab>iceshop</tab>
+            <class>iceshop-info-section</class>
+            <header_css>iceshop-info-header</header_css>
+            <frontend_type>text</frontend_type>
+            <sort_order>100</sort_order>
+            <show_in_default>1</show_in_default>
+            <show_in_website>1</show_in_website>
+            <show_in_store>1</show_in_store>
+            <comment><![CDATA[]]></comment>
+            <groups>
+                <iceshop_iframe translate="label comment">
+                    <label>More about Iceshop</label>
+                    <sort_order>50</sort_order>
+                    <show_in_default>1</show_in_default>
+                    <show_in_website>1</show_in_website>
+                    <show_in_store>1</show_in_store>
+                    <comment><![CDATA[<span style="color: grey;">Loading...</span>]]></comment>
+                    <fields>
+                        <iceshop_iframe_hidden translate="label comment">
+                            <label></label>
+                            <comment></comment>
+                            <frontend_type>select</frontend_type>
+                            <source_model>iceimport/system_config_iceshoplink</source_model>
+                            <sort_order>10</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </iceshop_iframe_hidden>
+                    </fields>
+                </iceshop_iframe>
+            </groups>
+        </iceshop_about>
+    </sections>
+</config>
