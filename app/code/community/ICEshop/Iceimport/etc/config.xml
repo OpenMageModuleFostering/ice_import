@@ -2,7 +2,7 @@
 <config>
     <modules>
         <ICEshop_Iceimport>
-            <version>1.7.12</version>
+            <version>1.7.13</version>
         </ICEshop_Iceimport>
     </modules>
     <admin>
@@ -117,7 +117,6 @@
                 <delete_old_products>1</delete_old_products>
                 <import_product_ean>1</import_product_ean>
                 <import_product_mpn>1</import_product_mpn>
-                <!--<import_product_brand>1</import_product_brand>-->
                 <import_product_brand_name>1</import_product_brand_name>
                 <import_product_name>1</import_product_name>
                 <import_product_short_description>1</import_product_short_description>
@@ -126,7 +125,6 @@
                 <import_product_summary_description>1</import_product_summary_description>
                 <import_prices>1</import_prices>
                 <import_stock>1</import_stock>
-                <!--<import_delivery_eta>1</import_delivery_eta>-->
                 <import_product_delivery_eta>1</import_product_delivery_eta>
                 <import_images>1</import_images>
                 <update_categories_from_csv>1</update_categories_from_csv>

@@ -226,7 +226,7 @@ class ICEshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
           $tax_reprobel = $iceimportAttributes['tax_reprobel'];
         }
 
-        // set status value 
+        // set status value
         $statusValue = (!empty($iceimportAttributes['status']) && $iceimportAttributes['status'] == 'Enabled') ? 1 : 2;
         $productData['int']['status'] = $statusValue;
 
@@ -412,23 +412,26 @@ class ICEshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
             $this->_addImageToQueue($productId, $productImage);
         }
 
-        if ($counter < $import_total) {
-            $session->setData("counter", (int)++$counter);
-        }
 
-        if (isset($counter) && isset($skipped_counter) && isset($import_total) && (($counter + $skipped_counter) == $import_total)) {
+        $counter_sum = $counter + $skipped_counter;
+
+        if (isset($counter) && isset($skipped_counter) && isset($import_total) && $counter_sum == $import_total) {
+
             $this->_runCategoriesSorting();
             $DB_logger = Mage::helper('iceimport/db');
             $this->deleteOldProducts($DB_logger);
 
-            $session->unsetData('import_total');
-            $session->unsetData('counter');
+//            $session->unsetData('import_total');
+//            $session->unsetData('counter');
 
             $DB_logger->insertLogEntry('error' . md5(microtime(true)), 'New products skipped while export according to Iceimport settings: ' . $skipped_counter, 'stat');
-            $session->unsetData('skipped_counter');
+//            $session->unsetData('skipped_counter');
 
             $date = date('m/d/Y H:i:s');
             $DB_logger->insertLogEntry('iceimport_import_ended', $date);
+        }
+        if ($counter < $import_total) {
+            $session->setData("counter", (int)++$counter);
         }
 
         return true;
@@ -644,16 +647,25 @@ class ICEshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
             }
 
             $not_delete_category = $this->getCategoryIdEmtyUnspsc($storeId);
-            $noDelCategory = ' AND ';
-            foreach ($not_delete_category as $category_ID ){
-              $noDelCategory .=  '`category_id` != '.$category_ID['entity_id'] . ' ';
+            $noDelCategory = '';
+            if(!empty($not_delete_category)){
+                foreach ($not_delete_category as $category_ID ){
+                  $noDelCategory .=  ''.$category_ID['entity_id'] . ',';
+                }
+            }
+            if(!empty($noDelCategory)){
+              $noDelCategory = substr($noDelCategory, 0, -1);
             }
 
             if (!empty($mapCategoryIds)) {
                 foreach ($mapCategoryIds as $delCategoryId) {
                     $delCategoryId = (int)$delCategoryId;
-                    $coreSaveSQL .= "DELETE FROM `{$this->_tablePrefix}catalog_category_product`
-                      WHERE `category_id` != {$delCategoryId} {$noDelCategory} AND `product_id` = @product_id;";
+                    $coreSaveSQL .= "DELETE FROM `{$this->_tablePrefix}catalog_category_product`";
+                      if(!empty($noDelCategory)){
+                        $coreSaveSQL .= "WHERE `category_id` NOT IN({$noDelCategory},{$delCategoryId}) AND `product_id` = @product_id;";
+                      } else {
+                        $coreSaveSQL .= "WHERE `category_id`!={$delCategoryId} AND `product_id` = @product_id;";
+                      }
                 }
             }
             try {
@@ -888,6 +900,7 @@ class ICEshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
                     echo $product->getCategory() . '<br>';
                     unset($product);
                 } else {
+                    $this->setImageAsDownloadedError($queueId);
                     Mage::log('Unable download file to ' . $productId, $logFileName);
                     continue;
                 }
@@ -911,6 +924,21 @@ class ICEshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
     }
 
     /**
+     * @param bool $queueId
+     */
+    private function setImageAsDownloadedError($queueId = false)
+    {
+        if ($queueId) {
+            $this->_connRes->query(
+                "UPDATE `{$this->_tablePrefix}iceshop_iceimport_image_queue`
+                    SET is_downloaded = 2
+                    WHERE queue_id = :queue_id",
+                array(':queue_id' => $queueId)
+            );
+        }
+    }
+
+    /**
      * @param $categories
      * @param $storeId
      * @param $unspsc
@@ -922,16 +950,17 @@ class ICEshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
     {
 
         // check if product exists
-        $categoryId = $this->_getCategoryIdByUnspsc($unspsc);
+        $categoryId = $this->_getCategoryIdByUnspsc($unspsc,$storeId);
 
         $categoryIds = array();
         if (!empty($categoryId)) {
+
             // merge categories by unspsc
             $categoryMergedArray = $this->_categoryMapper($categories, $unspscPath);
             foreach ($categoryMergedArray as $category) {
                 $categoryName = $category['name'];
                 $categoryUnspsc = $category['unspsc'];
-                $categoryTreeId = $this->_getCategoryIdByUnspsc($categoryUnspsc);
+                $categoryTreeId = $this->_getCategoryIdByUnspsc($categoryUnspsc,$storeId);
                 // check category name to current store
                 $categoryBindArray = array(
                     ':store_id' => 0,
@@ -1008,7 +1037,7 @@ class ICEshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
             $categoryCreateArray = array();
             for ($i = count($categoryMergedArray) - 1; $i >= 0; $i--) {
                 $category = $categoryMergedArray[$i];
-                $checkCategoryId = $this->_getCategoryIdByUnspsc($category['unspsc']);
+                $checkCategoryId = $this->_getCategoryIdByUnspsc($category['unspsc'],$storeId);
                 if ($checkCategoryId != null) {
                     $categoryId = $this->_buildCategoryTree($checkCategoryId, $storeId, $categoryCreateArray, $categoryActive);
                     $categoryIds[] = (int)$categoryId;
@@ -1056,10 +1085,10 @@ class ICEshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
      * @param $unspsc
      * @return int|null
      */
-    protected function _getCategoryIdByUnspsc($unspsc)
+    protected function _getCategoryIdByUnspsc($unspsc,$storeId = 0)
     {
         if ($unspsc == 'default_root') {
-            return Mage::app()->getStore(1)->getRootCategoryId();
+            return Mage::app()->getStore($storeId)->getRootCategoryId();
         } else {
             $categoryId = $this->_connRes->fetchRow(
                 "SELECT entity_id
@@ -1528,6 +1557,7 @@ class ICEshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
     {
         $delete_old_products = (int)Mage::getStoreConfig('iceshop_iceimport_importprod_root/importprod/delete_old_products');
         if ($delete_old_products) {
+
             try {
                 $db_res = Mage::getSingleton('core/resource')->getConnection('core_write');
                 $db_res->query("SELECT @is_iceimport_id := `attribute_id`
@@ -1540,6 +1570,7 @@ class ICEshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
                                                             ON cpe.entity_id = cpev.entity_id
                                                             AND cpev.value = 1
                                                             AND cpev.attribute_id = @is_iceimport_id");
+
                 $count_prod = $count_prod['count_prod'];
 
                 if ($count_prod > 0) {
@@ -1554,11 +1585,13 @@ class ICEshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
                                                             ON cpe.entity_id = iip.product_id
                                                         WHERE iip.product_id IS NULL");
 
-                    if(!empty($count_del_prod['count_del_prod'])){
-                        $count_del_prod = $count_del_prod['count_del_prod'];
+                    if(!empty($count_del_prod['count__del_prod'])){
+                        $count_del_prod = $count_del_prod['count__del_prod'];
                     } else {
                         $count_del_prod = 0;
                     }
+
+                     $delete_old_products_tolerance = (int)Mage::getStoreConfig('iceshop_iceimport_importprod_root/importprod/delete_old_products_tolerance');
 
                     if ($count_del_prod > 0) {
                         //iceimport products to delete exists, amount > 0
@@ -1581,10 +1614,13 @@ class ICEshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
                             $db_res->query("DELETE FROM {$this->_tablePrefix}iceshop_iceimport_imported_product_ids");
                         } else {
                             $error_message = 'Attempt to delete more old products than allowed in Iceimport configuration. Interruption of the process.';
-                            $DB_logger->insertLogEntry('error' . md5(microtime(true)), $error_message, 'error');
-                            $error_message2 = 'Old product percentage: ' . round(($count_del_prod / $count_prod * 100), 0) . '%';
-                            $DB_logger->insertLogEntry('error' . md5(microtime(true)), $error_message2, 'error');
+                            $DB_logger->insertLogEntry('error_try_delete_product', $error_message);
+//                            $DB_logger->insertLogEntry('error' . md5(microtime(true)), $error_message, 'error');
+                            $error_message2 = 'Old product percentage: ' . round(($count_del_prod / $count_prod * 100), 2) . '%';
+                            $DB_logger->insertLogEntry('error_try_delete_product_percentage', $error_message2);
+//                            $DB_logger->insertLogEntry('error' . md5(microtime(true)), $error_message2, 'error');
                             print $error_message;
+                            print $error_message2;
                             exit;
                         }
                     }
@@ -1634,7 +1670,7 @@ class ICEshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
         $query = "SELECT ccev.`entity_id` FROM `{$this->_tablePrefix}catalog_category_entity_varchar`  AS ccev
                                      LEFT JOIN `{$this->_tablePrefix}eav_attribute` AS ea
                                             ON ea.`attribute_id` = ccev.`attribute_id`
-                  WHERE ea.`attribute_code`='unspsc' AND ccev.`value` IS NULL AND ccev.`store_id`=:store_id;";
+                  WHERE ea.`attribute_code`='unspsc' AND (ccev.`store_id` = 0 OR ccev.`store_id`=:store_id) AND ccev.`value` IS NULL;";
 
             return $this->_connRes->fetchAll($query, array( ':store_id' => $store_id ));
     }

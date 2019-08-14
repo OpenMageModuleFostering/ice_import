@@ -33,9 +33,9 @@ class ICEshop_Iceimport_Model_Observer
         $DB_logger->insertLogEntry('iceimport_import_status_cron', 'Started');
         $DB_logger->insertLogEntry('iceimport_import_started', $date);
         $DB_logger->insertLogEntry('iceimport_import_ended', '');
+        $DB_logger->deleteLogEntry('error_try_delete_product');
+        $DB_logger->deleteLogEntry('error_try_delete_product_percentage');
         $this->setCroneStatus('running',$date_crone_start);
-
-
 
         //init DB data
         $db_res = Mage::getSingleton('core/resource')->getConnection('core_write');
@@ -209,5 +209,231 @@ class ICEshop_Iceimport_Model_Observer
       }
     }
 
+
+    /**
+     * Method import imges for product
+     */
+    public function importImages(){
+
+        $DB_logger = Mage::helper('iceimport/db');
+        $import_info = array();
+        if($_GET['import_run']==1){
+            $iceimport_count_images = $this->getCountImagesNotImport($_GET['update_images']);
+            $DB_logger->insertLogEntry('iceimport_count_images', $iceimport_count_images);
+        } else {
+          $iceimport_count_images = $DB_logger->getLogEntryByKey('iceimport_count_images');
+          if(!empty($iceimport_count_images)){
+              $iceimport_count_images = $iceimport_count_images ['log_value'];
+          }
+        }
+
+        $iceimport_current_images_import = $DB_logger->getLogEntryByKey('iceimport_current_images_import');
+        if(!empty($iceimport_current_images_import)){
+            $iceimport_current_images_import = $iceimport_current_images_import['log_value'];
+        }
+
+        if(empty($iceimport_count_images)){
+          $iceimport_count_images = $this->getCountImagesNotImport($_GET['update_images']);
+          $DB_logger->insertLogEntry('iceimport_count_images', $iceimport_count_images);
+        }
+        $import_info['count_images'] = $iceimport_count_images;
+
+
+        if(empty($iceimport_current_images_import)){
+          $iceimport_current_images_import = 1;
+          $DB_logger->insertLogEntry('iceimport_current_images_import', $iceimport_current_images_import);
+        } else {
+          $iceimport_current_images_import = $iceimport_current_images_import + 1;
+          $DB_logger->insertLogEntry('iceimport_current_images_import', $iceimport_current_images_import);
+        }
+        if($_GET['import_run']==1){
+          $iceimport_current_images_import = 1;
+          $DB_logger->insertLogEntry('iceimport_current_images_import', $iceimport_current_images_import);
+        }
+        $import_info['current_images_import'] = $iceimport_current_images_import;
+
+        // download & set product images
+        $queueList = $this->getImageResourceOne($_GET['update_images']);
+        if (count($queueList) > 0) {
+            $mediaDir = Mage::getBaseDir('media');
+            foreach ($queueList as $queue) {
+                $queueId = $queue['queue_id'];
+                $productId = $queue['entity_id'];
+                $imageUrl = $queue['image_url'];
+
+                $preImageName = explode('/', $imageUrl);
+                $imageName = array_pop($preImageName);
+                if (file_exists($mediaDir . DS . $imageName)) {
+                    $imageName = rand() . '_' . time() . $imageName;
+                }
+
+                if (file_put_contents($mediaDir . DS . $imageName, file_get_contents($imageUrl))) {
+                    $product = Mage::getModel('catalog/product')->load($productId);
+                    $product->addImageToMediaGallery($mediaDir . DS . $imageName,
+                        array('image', 'small_image', 'thumbnail'),
+                        true, true
+                    );
+                    $product->save();
+                    $this->setImageAsDownloaded($queueId);
+                    unset($product);
+                    $import_info['images_error'] = 0;
+                } else {
+                  $this->setImageAsDownloadedError($queueId);
+
+                  $iceimport_images_error_entity_id = $DB_logger->getLogEntryByKey('iceimport_images_error_entity_id');
+                  if(empty($iceimport_images_error_entity_id)){
+                    $DB_logger->insertLogEntry('iceimport_images_error_entity_id', $productId);
+                    $DB_logger->insertLogEntry('iceimport_images_error_entity_id_log', $productId);
+                  } else {
+                    if(!empty($iceimport_images_error_entity_id)){
+                        $iceimport_images_error_entity_id = $iceimport_images_error_entity_id['log_value'];
+                        $DB_logger->insertLogEntry('iceimport_images_error_entity_id_log', $iceimport_images_error_entity_id . ', ' . $productId);
+                        $DB_logger->insertLogEntry('iceimport_images_error_entity_id', $iceimport_images_error_entity_id . ', ' . $productId);
+
+                    }
+                  }
+                  $import_info['images_error'] = 1;
+                  $import_info['images_error_text'] = 'Requested file is not accessible. '.$imageUrl;
+                }
+            }
+          $import_info['done'] = 0;
+        } else {
+          $import_info['done'] = 1;
+          if($import_info['count_images'] == 0){
+              $import_info['current_images_import'] = 0;
+          }
+          $DB_logger->deleteLogEntry('iceimport_current_images_import');
+          $DB_logger->deleteLogEntry('iceimport_count_images');
+        }
+
+        if($import_info['current_images_import'] == $import_info['count_images'] || $import_info['done'] == 1){
+            $import_info['done'] = 1;
+            $DB_logger->deleteLogEntry('iceimport_images_error_entity_id');
+            $DB_logger->deleteLogEntry('iceimport_current_images_import');
+            $DB_logger->deleteLogEntry('iceimport_count_images');
+        }elseif ($import_info['count_images'] == 0 || $import_info['current_images_import'] == 0) {
+            $import_info['count_images'] = 0;
+            $import_info['current_images_import'] = 0;
+
+            $import_info['done'] = 1;
+            $DB_logger->deleteLogEntry('iceimport_current_images_import');
+            $DB_logger->deleteLogEntry('iceimport_count_images');
+            echo json_encode($import_info);
+            exit();
+        } else {
+              $import_info['done'] = 0;
+        }
+        echo json_encode($import_info);
+
+    }
+
+   /**
+     * @return mixed
+     */
+    public function getImageResourceOne($update = 0)
+    {
+      try{
+          $DB_logger = Mage::helper('iceimport/db');
+          $db_res = Mage::getSingleton('core/resource')->getConnection('core_write');
+          $tablePrefix = '';
+          $tPrefix = (array)Mage::getConfig()->getTablePrefix();
+          if (!empty($tPrefix)) {
+              $tablePrefix = $tPrefix[0];
+          }
+
+          $iceimport_images_error_entity_id = $DB_logger->getLogEntryByKey('iceimport_images_error_entity_id');
+          if(empty($iceimport_images_error_entity_id)){
+            if($update){
+              return $db_res->fetchAll("SELECT `queue_id`, `entity_id`, `image_url`
+                                                    FROM `{$tablePrefix}iceshop_iceimport_image_queue`
+                                                    WHERE `is_downloaded` = 2 LIMIT 1");
+            }else{
+              return $db_res->fetchAll("SELECT `queue_id`, `entity_id`, `image_url`
+                                                    FROM `{$tablePrefix}iceshop_iceimport_image_queue`
+                                                    WHERE `is_downloaded` = 0 LIMIT 1");
+            }
+
+          } else {
+            $iceimport_images_error_entity_id = $iceimport_images_error_entity_id['log_value'];
+            if($update){
+              return $db_res->fetchAll("SELECT `queue_id`, `entity_id`, `image_url`
+                                                    FROM `{$tablePrefix}iceshop_iceimport_image_queue`
+                                            WHERE `is_downloaded` = 2 AND entity_id NOT IN({$iceimport_images_error_entity_id}) LIMIT 1");
+            } else {
+              return $db_res->fetchAll("SELECT `queue_id`, `entity_id`, `image_url`
+                                                    FROM `{$tablePrefix}iceshop_iceimport_image_queue`
+                                            WHERE `is_downloaded` = 0 AND entity_id NOT IN({$iceimport_images_error_entity_id}) LIMIT 1");
+            }
+
+          }
+
+      } catch (Exception $e){
+      }
+    }
+
+    /**
+     * Method fetch count not import images for product
+     * @return integer
+     */
+    public function getCountImagesNotImport($update = 0){
+      try{
+          $db_res = Mage::getSingleton('core/resource')->getConnection('core_write');
+          $tablePrefix = '';
+          $tPrefix = (array)Mage::getConfig()->getTablePrefix();
+          if (!empty($tPrefix)) {
+              $tablePrefix = $tPrefix[0];
+          }
+          if($update){
+              return $return_resulr = $db_res->fetchOne("SELECT COUNT(*) FROM `{$tablePrefix}iceshop_iceimport_image_queue`
+                                            WHERE `is_downloaded` = 2");
+          } else {
+              return $return_resulr = $db_res->fetchOne("SELECT COUNT(*) FROM `{$tablePrefix}iceshop_iceimport_image_queue`
+                                            WHERE `is_downloaded` = 0");
+          }
+      } catch (Exception $e){
+      }
+    }
+
+
+
+    /**
+     * @param bool $queueId
+     */
+    private function setImageAsDownloaded($queueId = false)
+    {
+        if ($queueId) {
+          $db_res = Mage::getSingleton('core/resource')->getConnection('core_write');
+          $tablePrefix = '';
+          $tPrefix = (array)Mage::getConfig()->getTablePrefix();
+          if (!empty($tPrefix)) {
+              $tablePrefix = $tPrefix[0];
+          }
+            $db_res->query("UPDATE `{$tablePrefix}iceshop_iceimport_image_queue`
+                    SET is_downloaded = 1
+                    WHERE queue_id = {$queueId}");
+        }
+    }
+
+
+    /**
+     * @param bool $queueId
+     */
+    private function setImageAsDownloadedError($queueId = false)
+    {
+        if ($queueId) {
+            $db_res = Mage::getSingleton('core/resource')->getConnection('core_write');
+            $tablePrefix = '';
+            $tPrefix = (array)Mage::getConfig()->getTablePrefix();
+            if (!empty($tPrefix)) {
+                $tablePrefix = $tPrefix[0];
+            }
+            $db_res->query(
+                "UPDATE `{$tablePrefix}iceshop_iceimport_image_queue`
+                    SET is_downloaded = 2
+                    WHERE queue_id = :queue_id",
+                array(':queue_id' => $queueId)
+            );
+        }
+    }
 }
 

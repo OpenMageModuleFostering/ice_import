@@ -615,9 +615,60 @@ class ICEshop_Iceimport_Helper_System_Systemcheck extends Mage_Core_Helper_Abstr
             }
         }
 
+        $try_delete_product = $DB_logger->getLogEntryByKey('error_try_delete_product');
+        $delete_product_percentage = $DB_logger->getLogEntryByKey('error_try_delete_product_percentage');
+        if(!empty($delete_product_percentage) && !empty($try_delete_product)) {
+            $problems['iceimport_delete_product'][] = array(
+                    'label' => 'There is a problem during last import',
+                    'current_value' => $try_delete_product['log_value'].$delete_product_percentage['log_value']
+                );
+            $count++;
+        }
+
         $problems_digest = new Varien_Object();
         $problems_digest->setData('problems', $problems);
         $problems_digest->setData('count', $count);
         return $problems_digest;
     }
+
+    public function setWarningIceimport($massage){
+        Mage::getSingleton('adminhtml/session')->addNotice('Warning!'.$massage);
+    }
+
+
+    public function getImagesStatistics(){
+      try{
+          $db_res = Mage::getSingleton('core/resource')->getConnection('core_write');
+          $tablePrefix = '';
+          $tPrefix = (array)Mage::getConfig()->getTablePrefix();
+          if (!empty($tPrefix)) {
+              $tablePrefix = $tPrefix[0];
+          }
+          $statistic_check = array();
+          $statistic_check['total_entries']['type'] = 'total_entries';
+          $statistic_check['total_entries']['label'] = 'Total Images Entries:';
+          $count_value = $db_res->fetchRow("SELECT COUNT(*) FROM `{$tablePrefix}iceshop_iceimport_image_queue`");
+          $total_entries = $count_value['COUNT(*)'];
+          $statistic_check['total_entries']['value'] = $total_entries;
+
+          $statistic_check['total_download']['type'] = 'total_download';
+          $statistic_check['total_download']['label'] = 'Total Images Downloaded:';
+          $count_value = $db_res->fetchRow("SELECT COUNT(*) FROM `{$tablePrefix}iceshop_iceimport_image_queue` WHERE `is_downloaded` = 1");
+          $statistic_check['total_download']['value'] = $count_value['COUNT(*)'] . " ( " . round($count_value['COUNT(*)'] * 100 / $total_entries, 2) . "% )";
+
+          $statistic_check['total_waiting_download']['type'] = 'total_waiting_download';
+          $statistic_check['total_waiting_download']['label'] = 'Images Waiting Download:';
+          $count_value = $db_res->fetchRow("SELECT COUNT(*) FROM `{$tablePrefix}iceshop_iceimport_image_queue` WHERE `is_downloaded` = 0");
+          $statistic_check['total_waiting_download']['value'] = $count_value['COUNT(*)'] . " ( " . round($count_value['COUNT(*)'] * 100 / $total_entries, 2) . "% )";
+
+          $statistic_check['total_error_download']['type'] = 'total_error_download';
+          $statistic_check['total_error_download']['label'] = 'Images Download Error:';
+          $count_value = $db_res->fetchRow("SELECT COUNT(*) FROM `{$tablePrefix}iceshop_iceimport_image_queue` WHERE `is_downloaded` = 2");
+          $statistic_check['total_error_download']['value'] = $count_value['COUNT(*)'] . " ( " . round($count_value['COUNT(*)'] * 100 / $total_entries, 2) . "% )";
+
+          return $statistic_check;
+      } catch (Exception $e){
+      }
+    }
+
 }

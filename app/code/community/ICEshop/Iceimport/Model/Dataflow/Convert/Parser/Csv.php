@@ -15,8 +15,11 @@ class ICEshop_Iceimport_Model_Dataflow_Convert_Parser_Csv extends Mage_Dataflow_
 
     public function parse()
     {
+        $this->clearIceimportIds();
         $DB_logger = Mage::helper('iceimport/db');
         $date = date('m/d/Y H:i:s');
+        $DB_logger->deleteLogEntry('error_try_delete_product');
+        $DB_logger->deleteLogEntry('error_try_delete_product_percentage');
         $DB_logger->insertLogEntry('iceimport_import_started', $date);
 
         $default_attr_set_id = Mage::getModel('catalog/product')->getResource()->getEntityType()->getDefaultAttributeSetId();
@@ -154,8 +157,37 @@ class ICEshop_Iceimport_Model_Dataflow_Convert_Parser_Csv extends Mage_Dataflow_
         if (isset($skipped_counter)) {
             $session->unsetData("skipped_counter");
         }
+        $this->updateCatalogCategoryChildren();
 
         return $this;
+    }
+
+
+    public function clearIceimportIds(){
+      $db_res = Mage::getSingleton('core/resource')->getConnection('core_write');
+      $tablePrefix = '';
+        $tPrefix = (array)Mage::getConfig()->getTablePrefix();
+        if (!empty($tPrefix)) {
+            $tablePrefix = $tPrefix[0];
+        }
+        $db_res->query("DELETE FROM {$tablePrefix}iceshop_iceimport_imported_product_ids");
+    }
+
+
+    /**
+     * Update path to children category/root
+     */
+    public function updateCatalogCategoryChildren(){
+      try{
+          $db_res = Mage::getSingleton('core/resource')->getConnection('core_write');
+          $tablePrefix = '';
+          $tPrefix = (array)Mage::getConfig()->getTablePrefix();
+          if (!empty($tPrefix)) {
+              $tablePrefix = $tPrefix[0];
+          }
+          $db_res->query('UPDATE `'.$tablePrefix.'catalog_category_entity` SET children_count = (SELECT COUNT(*) FROM (SELECT * FROM `'.$tablePrefix.'catalog_category_entity`) AS table2 WHERE path LIKE CONCAT(`'.$tablePrefix.'catalog_category_entity`.path,"/%"));');
+      } catch (Exception $e){
+      }
     }
 
 }

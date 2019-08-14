@@ -1,7 +1,14 @@
 <?php
-
+require_once 'IceimagesController.php';
 class ICEshop_Iceimport_Adminhtml_IceimportController extends Mage_Adminhtml_Controller_Action
 {
+    public $_gridTables = NULL;
+
+    public function _construct() {
+      $this->_gridTables = new Iceshop_Icecatlive_Adminhtml_IceimagesController($this->getRequest(), $this->getResponse());
+      parent::_construct();
+    }
+
 
     /**
      * indexAction
@@ -35,20 +42,34 @@ class ICEshop_Iceimport_Adminhtml_IceimportController extends Mage_Adminhtml_Con
                             <?php
                             $i = 1;
                             foreach ($problems as $problem_section_name => $problem_section) {
-                                foreach ($problem_section as $problem_name => $problem_value) {
-                                    print '<tr>';
-                                    print '<td class="label">';
-                                    print '<label class="problem-digest">' . $helper->__('Problem') . " " . $i . ':</label>';
-                                    print '</td>';
-                                    print '<td class="value">';
-                                    if ($problem_section_name != 'iceimport_log') {
-                                        print '<span class="requirement-passed">"' . $problem_value['label'] . '"</span> ' . $helper->__('current value is') . ' <span class="requirement-failed">"' . $problem_value['current_value'] . '"</span> ' . $helper->__('and recommended value is') . ' <span class="requirement-passed">"' . (!empty($problem_value['recommended_value']) ? $problem_value['recommended_value'] : '') . '"</span>. ' . $helper->__(' Check this parameter in') . ' <a class="section-toggler-trigger-iceimport requirement-passed" data-href="#' . $problem_section_name . '-section" href="#' . $problem_section_name . '-section">' . ucfirst($problem_section_name) . '</a> ' . $helper->__('section') . '.';
-                                    } else {
-                                        print '<span class="requirement-passed">"' . $problem_value['label'] . '"</span> <span class="requirement-failed">"' . $problem_value['current_value'] . '"</span>. ' . $helper->__(' Check ') . ' <a class="section-toggler-trigger-iceimport requirement-passed" data-href="#' . $problem_section_name . '-section" href="#' . $problem_section_name . '-section">' . ucfirst($problem_section_name) . '</a> ' . $helper->__('section') . '.';
+                                if($problem_section_name !='iceimport_delete_product'){
+                                    foreach ($problem_section as $problem_name => $problem_value) {
+                                        print '<tr>';
+                                        print '<td class="label">';
+                                        print '<label class="problem-digest">' . $helper->__('Problem') . " " . $i . ':</label>';
+                                        print '</td>';
+                                        print '<td class="value">';
+                                        if ($problem_section_name != 'iceimport_log') {
+                                            print '<span class="requirement-passed">"' . $problem_value['label'] . '"</span> ' . $helper->__('current value is') . ' <span class="requirement-failed">"' . $problem_value['current_value'] . '"</span> ' . $helper->__('and recommended value is') . ' <span class="requirement-passed">"' . (!empty($problem_value['recommended_value']) ? $problem_value['recommended_value'] : '') . '"</span>. ' . $helper->__(' Check this parameter in') . ' <a class="section-toggler-trigger-iceimport requirement-passed" data-href="#' . $problem_section_name . '-section" href="#' . $problem_section_name . '-section">' . ucfirst($problem_section_name) . '</a> ' . $helper->__('section') . '.';
+                                        } else {
+                                            print '<span class="requirement-passed">"' . $problem_value['label'] . '"</span> <span class="requirement-failed">"' . $problem_value['current_value'] . '"</span>. ' . $helper->__(' Check ') . ' <a class="section-toggler-trigger-iceimport requirement-passed" data-href="#' . $problem_section_name . '-section" href="#' . $problem_section_name . '-section">' . ucfirst($problem_section_name) . '</a> ' . $helper->__('section') . '.';
+                                        }
+                                        print '</td>';
+                                        print '</tr>';
+                                        $i++;
                                     }
-                                    print '</td>';
-                                    print '</tr>';
-                                    $i++;
+                                } else {
+                                  foreach ($problem_section as $problem_name => $problem_value) {
+                                        print '<tr>';
+                                        print '<td class="label">';
+                                        print '<label class="problem-digest">' . $helper->__('Problem') . " " . $i . ':</label>';
+                                        print '</td>';
+                                        print '<td class="value">';
+                                            print '<span class="requirement-failed">' . $problem_value['label'] . ': </span>  <span class="requirement">' . $problem_value['current_value'] . '</span> ';
+                                        print '</td>';
+                                        print '</tr>';
+                                        $i++;
+                                    }
                                 }
                             }
                             ?>
@@ -73,6 +94,10 @@ class ICEshop_Iceimport_Adminhtml_IceimportController extends Mage_Adminhtml_Con
         $data_flows = $DB_checker->getRowCountByField($DB_checker->getTableName('dataflow_batch_import'), 'batch_id', false, ' ORDER BY 1 DESC LIMIT 50');
         $currently_imported_products = $DB_checker->getRowsCount($DB_checker->_prefix . "iceshop_iceimport_imported_product_ids");
         $table_name = $DB_checker->getTableName('dataflow_profile_history');
+
+        $try_delete_product = $DB_checker->getLogEntryByKey('error_try_delete_product');
+        $delete_product_percentage = $DB_checker->getLogEntryByKey('error_try_delete_product_percentage');
+
         $last_started_by_cron = $DB_checker->getLogEntryByKey('iceimport_import_started');
         $last_finished_by_cron = $DB_checker->getLogEntryByKey('iceimport_import_ended');
         $import_status_cron = $DB_checker->getLogEntryByKey('iceimport_import_status_cron');
@@ -140,6 +165,7 @@ class ICEshop_Iceimport_Adminhtml_IceimportController extends Mage_Adminhtml_Con
                                 <?php if (!empty($last_imported_products_count['log_value'])) echo $last_imported_products_count['log_value']; else echo "0"; ?>
                             </td>
                         </tr>
+
                         <tr>
                             <td class="label">
                                 <label><?php print $helper->__("Removed out of date products last time "); ?>:</label>
@@ -148,6 +174,17 @@ class ICEshop_Iceimport_Adminhtml_IceimportController extends Mage_Adminhtml_Con
                                 <?php if (!empty($last_deleted_products_count['log_value'])) echo $last_deleted_products_count['log_value']; else echo "0"; ?>
                             </td>
                         </tr>
+                        <?php if(!empty($delete_product_percentage) && !empty($try_delete_product)) { ?>
+                        <tr>
+                            <td class="label">
+                                <label><?php print $helper->__("Attempt to remove a large amount of products "); ?>:</label>
+                            </td>
+                            <td class="value">
+                                <?php echo $try_delete_product['log_value'].$delete_product_percentage['log_value']; ?>
+                            </td>
+                        </tr>
+                        <?php } ?>
+
                     </table>
                 </div>
             </div>
@@ -584,6 +621,63 @@ class ICEshop_Iceimport_Adminhtml_IceimportController extends Mage_Adminhtml_Con
                 </div>
             </div>
         </div>
+        <?php  //Image Statistics  ?>
+        <span id="iceimport_image-statistics-section"></span>
+        <div class="entry-edit">
+            <div class="entry-edit-head collapseable">
+                <a href="#" class="section-toggler-iceimport">Images Statistics</a>
+            </div>
+
+            <div class="fieldset iceimport-hidden">
+                <div class="hor-scroll">
+                    <table class="form-list" cellspacing="0" cellpadding="0">
+                        <?php
+                        $image_statistics = $checker->getImagesStatistics();
+                          print '<tbody>';
+                        if(!empty($image_statistics)){
+                          foreach ($image_statistics as $statistic){
+                              if($statistic['type'] == 'total_error_download' && $statistic['value'] > 0){
+                                  $update_button = $this->getLayout()->createBlock('iceimport/adminhtml_system_config_form_updatebutton');
+                                  print '<tr>';
+                                  print "<td class=\"label\"><label>{$statistic['label']}</label></td>";
+                                  print "<td class=\"label\"><label>{$statistic['value']}</label></td>";
+                                  print "<td class=\"label\">{$update_button->getButtonHtml()}</td>";
+                                  print '</tr>';
+                              } else if($statistic['type'] == 'total_waiting_download' && $statistic['value'] > 0){
+                                  $button = $this->getLayout()->createBlock('iceimport/adminhtml_system_config_form_button');
+                                  print '<tr>';
+                                  print "<td class=\"label\"><label>{$statistic['label']}</label></td>";
+                                  print "<td class=\"label\"><label>{$statistic['value']}</label></td>";
+                                  print "<td class=\"label\">{$button->getButtonHtml()}</td>";
+                                  print '</tr>';
+                              } else {
+                                  if(!empty($statistic['label']) || !empty($statistic['value'])){
+                                      print '<tr>';
+                                      print "<td class=\"label\"><label>{$statistic['label']}</label></td>";
+                                      print "<td class=\"label\"><label>{$statistic['value']}</label></td>";
+                                      print "<td></td>";
+                                      print '</tr>';
+                                  }
+                              }
+                          }
+                        }
+                          print '</tbody>';
+                       ?>
+                    </table>
+                        <div id="gridActionClener" class="hor-scroll">
+                            <?php
+                            if(!empty($image_statistics)){
+                                if(!empty( $image_statistics['total_error_download']['value'])&&$image_statistics['total_error_download']['value']>0){
+                                    $exportall_button = $this->getLayout()->createBlock('iceimport/adminhtml_system_config_form_exportall');
+                                    echo $this->_gridTables->getGridTable().$exportall_button->getButtonHtml();
+
+                                }
+                             }
+                            ?>
+                        </div>
+                </div>
+            </div>
+        </div>
         <style>
             .requirement-passed {
                 color: green;
@@ -593,6 +687,97 @@ class ICEshop_Iceimport_Adminhtml_IceimportController extends Mage_Adminhtml_Con
                 color: red;
             }
         </style>
+        <script type="text/javascript">
+
+
+    function import_prod_images(import_run, update){
+       $('loading_mask_loader').setStyle({
+            width: '430px',
+            marginLeft: '-235px',
+            top: '25%'
+        });
+        $('loading-mask').setStyle({
+            display: 'inline',
+            opacity: '0.90'
+        });
+        $$('#loading_mask_loader > img')[0].setStyle({
+                        'display': 'inline'
+                    });
+         var str = $('loading_mask_loader').innerHTML;
+        str = str.replace('<br>Please wait...', '');
+        $('loading_mask_loader').innerHTML = str;
+
+        new Ajax.Request('<?php echo Mage::helper("adminhtml")->getUrl("adminhtml/iceimportimages/check/"); ?>', {
+            method:     'get',
+            parameters: {import_run: import_run, update_images:update},
+            onSuccess: function(data){
+                var import_info = JSON.parse(data.responseText);
+                var images_error_text = '';
+                var images_error = import_info.images_error;
+                if(images_error){
+                  images_error_text = '<p> Import images error: ' + import_info.images_error_text + '</p>';
+                }
+                var iceimport_count_images = '<p> Found images not imported: '+import_info.count_images+'</p>';
+                var iceimport_current_images_import = '<p> Current images import: '+import_info.current_images_import+'</p>';
+                if(import_info.done != 1){
+                    if($('loading_mask_loader').select('#iceimport-images-response').size() == 0){
+                        $('loading_mask_loader').insert({bottom: '<div id="iceimport-images-response" style="text-align: left">'
+                            +iceimport_count_images
+                            +iceimport_current_images_import
+                            +images_error_text
+                            +'</div>'});
+                    }else{
+                        $('iceimport-images-response').replace('<div id="iceimport-images-response" style="text-align: left">'
+                            +iceimport_count_images
+                            +iceimport_current_images_import
+                            +images_error_text
+                            +'</div>');
+                    }
+                    import_prod_images(0,update);
+                }else{
+                    if($('loading_mask_loader').select('#iceimport-images-response').size() == 0){
+                        $('loading_mask_loader').insert({bottom: '<div id="iceimport-images-response" style="text-align: left">'
+                            +iceimport_count_images
+                            +iceimport_current_images_import
+                            +images_error_text
+                            +'</div>'
+                            +'<button id="iceimport_images_button_finish" onclick="javascript:hide_progress_popup(); return false;" title="Finish import" type="button" class="scalable " style=""><span><span><span>Finish import</span></span></span></button>'});
+                    }else{
+                    $('iceimport-images-response').replace('<div id="iceimport-images-response" style="text-align: left">'
+                        +iceimport_count_images
+                        +iceimport_current_images_import
+                        +images_error_text
+                        +'</div>'
+                        +'<button id="iceimport_images_button_finish" onclick="javascript:hide_progress_popup(); return false;" title="Finish import" type="button" class="scalable " style=""><span><span><span>Finish import</span></span></span></button>');
+                    }
+                    $$('#loading_mask_loader > img')[0].setStyle({
+                        'display': 'none'
+                    });
+                    var str = $('loading_mask_loader').innerHTML;
+                    str = str.replace('<br>Please wait...', '');
+                    $('loading_mask_loader').innerHTML = str;
+                }
+            },
+            onComplete: function(){
+                $('loading_mask').setStyle({
+                    display: 'none'
+                });
+            },
+            onFailure: function() {
+              import_prod_images(1,update);
+            }
+        });
+    }
+
+    function hide_progress_popup(){
+        document.getElementById("iceimport_images_button_finish").remove();
+        document.getElementById('iceimport-images-response').innerHTML = '';
+        $('loading-mask').setStyle({
+            display: 'none'
+        });
+    }
+
+</script>
         <?php
         $system_check_content = ob_get_contents();
         ob_end_clean();
@@ -885,4 +1070,48 @@ class ICEshop_Iceimport_Adminhtml_IceimportController extends Mage_Adminhtml_Con
         print str_pad('', 100, '=') . "\n";
         //========================================
     }
+
+
+    /**
+     * Method for export to csv file
+     */
+    public function exportIceimportimagesCsvAction()
+    {
+        $fileName = 'notimport_images.csv';
+        $grid = $this->getLayout()->createBlock('iceimport/adminhtml_images_list_grid');
+        $grid->setDefaultLimit($grid->getCountImagesNotImport());
+        $this->_prepareDownloadResponse($fileName, $grid->getCsvFile());
+    }
+
+    /**
+     * Method for export to excel  file
+     */
+    public function exportIceimportimagesExcelAction() {
+        $fileName = 'notimport_images.xml';
+        $grid = $this->getLayout()->createBlock('iceimport/adminhtml_images_list_grid');
+        $grid->setDefaultLimit($grid->getCountImagesNotImport());
+        $this->_prepareDownloadResponse($fileName, $grid->getExcelFile($fileName));
+    }
+
+    /**
+     * Images grid for AJAX request
+     */
+    public function gridAction() {
+        $exportall_button = $this->getLayout()->createBlock('iceimport/adminhtml_system_config_form_exportall');
+        $this->_gridTables->getGridTable().$exportall_button->getButtonHtml();
+    }
+
+        /**
+     * Method for export to csv file
+     */
+    public function exportIceimportimagesCsvAllAction()
+    {
+        $fileName = 'notimport_images.csv';
+        $grid = $this->getLayout()->createBlock('iceimport/adminhtml_images_list_grid');
+        $grid->setDefaultLimit($grid->getCountImagesNotImport());
+        $this->_prepareDownloadResponse($fileName, $grid->getCsvFile());
+    }
+
+
+
 }
