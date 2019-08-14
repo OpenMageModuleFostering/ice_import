@@ -46,8 +46,6 @@ class ICEshop_Iceimport_Model_Observer
         }
 
         //service actions
-//        ini_set('max_execution_time', 360 );
-//        ini_set("memory_limit", "512M");
         ini_set('max_execution_time', 0);
         ini_set("memory_limit","-1");
         $profileId = 3;
@@ -159,6 +157,7 @@ class ICEshop_Iceimport_Model_Observer
 
         // clear dataflow_batch_import table
         try {
+            $this->updateCatalogCategoryChildren();
             $db_res->query("DELETE FROM {$tablePrefix}iceshop_iceimport_imported_product_ids");
             $db_res->query("TRUNCATE {$tablePrefix}dataflow_batch_import");
         } catch (Exception $e) {
@@ -170,8 +169,6 @@ class ICEshop_Iceimport_Model_Observer
         $date = date('m/d/Y H:i:s');
         $DB_logger->insertLogEntry('iceimport_import_ended', $date);
         $this->setCroneStatus('finished', $date);
-
-
 
         unset($db_res, $DB_logger, $date, $profile, $profileId, $logFileName);
     }
@@ -192,6 +189,23 @@ class ICEshop_Iceimport_Model_Observer
           $db_res->query("UPDATE `{$tablePrefix}cron_schedule` SET status='$status' WHERE job_code = 'iceshop_iceimport' AND executed_at='$date_crone_start'");
       } catch (Exception $e){
 
+      }
+    }
+
+
+    /**
+     * Update path to children category/root
+     */
+    public function updateCatalogCategoryChildren(){
+      try{
+          $db_res = Mage::getSingleton('core/resource')->getConnection('core_write');
+          $tablePrefix = '';
+          $tPrefix = (array)Mage::getConfig()->getTablePrefix();
+          if (!empty($tPrefix)) {
+              $tablePrefix = $tPrefix[0];
+          }
+          $db_res->query('UPDATE `'.$tablePrefix.'catalog_category_entity` SET children_count = (SELECT COUNT(*) FROM (SELECT * FROM `'.$tablePrefix.'catalog_category_entity`) AS table2 WHERE path LIKE CONCAT(`'.$tablePrefix.'catalog_category_entity`.path,"/%"));');
+      } catch (Exception $e){
       }
     }
 

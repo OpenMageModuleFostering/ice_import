@@ -226,8 +226,8 @@ class ICEshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
           $tax_reprobel = $iceimportAttributes['tax_reprobel'];
         }
 
-        // set status value
-        $statusValue = (!empty($iceimportAttributes['status']) && $iceimportAttributes['status'] == 'Enabled') ? 1 : 0;
+        // set status value 
+        $statusValue = (!empty($iceimportAttributes['status']) && $iceimportAttributes['status'] == 'Enabled') ? 1 : 2;
         $productData['int']['status'] = $statusValue;
 
         // set visibility value
@@ -521,9 +521,7 @@ class ICEshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
             $productshsudescriptionConf = (int)Mage::getStoreConfig('iceshop_iceimport_importprod_root/importprod/import_product_short_summary_description', $storeId);
             $productsudescriptionConf = (int)Mage::getStoreConfig('iceshop_iceimport_importprod_root/importprod/import_product_summary_description', $storeId);
             $productbrandConf = (int)Mage::getStoreConfig('iceshop_iceimport_importprod_root/importprod/import_product_brand_name', $storeId);
-//            $productbrandConf = (int)Mage::getStoreConfig('iceshop_iceimport_importprod_root/importprod/import_product_brand', $storeId);
             $deliveryetaConf = (int)Mage::getStoreConfig('iceshop_iceimport_importprod_root/importprod/import_product_delivery_eta', $storeId);
-//            $deliveryetaConf = (int)Mage::getStoreConfig('iceshop_iceimport_importprod_root/importprod/import_delivery_eta', $storeId);
 
             foreach ($entityData as $type => $typeAttributes) {
                 foreach ($typeAttributes as $attribute => $value) {
@@ -582,24 +580,27 @@ class ICEshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
                 if (!empty($typeAttributes)) {
                     $tailCoreSaveSQL .= "INSERT INTO `{$this->_tablePrefix}catalog_product_entity_{$type}` (`entity_type_id`, `attribute_id`, `store_id`, `entity_id`, `value`) VALUES ";
                     foreach ($typeAttributes as $attribute => $value) {
-
-                        if ($is_select == 1) {
-                            $option_id = $this->getAttributeOptionValue($attribute, $value);
-                            if (empty($option_id)) {
-                                $option_id = $this->addAttributeOption($attribute, $value);
+                        if($this->_checkAttributeExist($attribute)){
+                            if ($is_select == 1) {
+                                $option_id = $this->getAttributeOptionValue($attribute, $value);
+                                if (empty($option_id)) {
+                                    $option_id = $this->addAttributeOption($attribute, $value);
+                                }
+                                $value = $option_id;
                             }
-                            $value = $option_id;
+                            $attributesInit .= "SELECT @product_entity_type_id := `entity_type_id`
+                                                    FROM `{$this->_tablePrefix}eav_attribute`
+                                                    WHERE `attribute_code` = '{$attribute}';";
+                            $attributesInit .= "SELECT @{$attribute}_id := `attribute_id`
+                                                    FROM `{$this->_tablePrefix}eav_attribute`
+                                                    WHERE `attribute_code` = '{$attribute}'
+                                                        AND entity_type_id = @product_entity_type_id;";
+
+                            $tailCoreSaveSQL .= "
+                                  (@product_entity_type_id, @{$attribute}_id, 0, @product_id, :{$attribute} ),
+                                  (@product_entity_type_id, @{$attribute}_id, :store_id, @product_id, :{$attribute} ), ";
+                            $bindArray[':' . $attribute] = $value;
                         }
-                        $attributesInit .= "SELECT @{$attribute}_id := `attribute_id`
-                                                FROM `{$this->_tablePrefix}eav_attribute`
-                                                WHERE `attribute_code` = '{$attribute}'
-                                                    AND entity_type_id = @product_entity_type_id;";
-
-                        $tailCoreSaveSQL .= "
-                              (@product_entity_type_id, @{$attribute}_id, 0, @product_id, :{$attribute} ),
-                              (@product_entity_type_id, @{$attribute}_id, :store_id, @product_id, :{$attribute} ), ";
-                        $bindArray[':' . $attribute] = $value;
-
                     }
                     $tailCoreSaveSQL = substr($tailCoreSaveSQL, 0, -2);
                     $tailCoreSaveSQL .= "
@@ -609,22 +610,23 @@ class ICEshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
                 $coreSaveSQL .= $attributesInit . $tailCoreSaveSQL;
             } else {
                 foreach ($typeAttributes as $attribute => $attributeData) {
-                    $prod_id_field = $attributeData['prod_id_field'];
-                    $table = $attributeData['table'];
-                    $field = $attributeData['field'];
-                    $value = $attributeData['value'];
-                    if (!empty($table) && !empty($field)) {
-                        $coreSaveSQL .= "UPDATE `{$this->_tablePrefix}{$table}`
-                                            SET `{$field}` = :{$attribute}
-                                            WHERE `{$prod_id_field}` = @product_id;";
-                        $bindArray[':' . $attribute] = $value;
+                    if($this->_checkAttributeExist($attribute)){
+                        $prod_id_field = $attributeData['prod_id_field'];
+                        $table = $attributeData['table'];
+                        $field = $attributeData['field'];
+                        $value = $attributeData['value'];
+                        if (!empty($table) && !empty($field)) {
+                            $coreSaveSQL .= "UPDATE `{$this->_tablePrefix}{$table}`
+                                                SET `{$field}` = :{$attribute}
+                                                WHERE `{$prod_id_field}` = @product_id;";
+                            $bindArray[':' . $attribute] = $value;
+                        }
                     }
                 }
             }
         }
         // categories
         if ($newProduct || ($productId === null) || ($productId !== null && $this->_getRefreshSetting('categories') == 1)) {
-//        if ($productId !== null) {
             $coreSaveSQL .= "INSERT INTO `{$this->_tablePrefix}catalog_category_product` (`category_id`, `product_id`, `position`) VALUES ";
             $counter = 1;
 
@@ -669,6 +671,21 @@ class ICEshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
             }
         }
         return $productId;
+    }
+
+    /**
+     * Verify the existence of an attribute
+     * @param string $attributeCode
+     * @return boolean
+     */
+    protected function _checkAttributeExist($attributeCode){
+          $query = "SELECT `attribute_id` FROM `{$this->_tablePrefix}eav_attribute` WHERE attribute_code='{$attributeCode}';";
+          $attributeCheck = $this->_connRes->fetchRow($query);
+          $attributeId = $attributeCheck['attribute_id'];
+          if(empty($attributeId)){
+            return false;
+          }
+          return true;
     }
 
     /**
@@ -1251,7 +1268,7 @@ class ICEshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
             foreach ($importData as $attributeCode => $value) {
                 $backendTypeFetch = $this->_connRes->fetchRow("SELECT backend_type FROM `{$this->_tablePrefix}eav_attribute` WHERE `attribute_code` = :code", array(':code' => $attributeCode));
                 $backendType = $backendTypeFetch['backend_type'];
-                if (($backendType != 'static') && !empty($backendType) && $value != '') {
+                if (($backendType != 'static' && !empty($backendType) && $value != '')) {
                     $productData[$backendType][$attributeCode] = $value;
                     unset($importData[$attributeCode]);
                 }
@@ -1289,7 +1306,7 @@ class ICEshop_Iceimport_Model_Convert_Adapter_Product extends Mage_Catalog_Model
                 'name',
                 'url_key',
                 'meta_description',
-                'meta_title',
+                'meta_title'
             ),
             'int' => array(
                 'enable_googlecheckout',
