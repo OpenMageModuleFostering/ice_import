@@ -1,7 +1,7 @@
 {
-    "name": "OpenMageModuleFostering\/ice_import",
+    "name": "openmage-module-fostering\/ice_import",
     "type": "magento-module",
-    "license": "OSL-v.3",
+    "license": "OSL-3.0",
     "homepage": "",
     "description": "Import categories & products",
     "authors": [
